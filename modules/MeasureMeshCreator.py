@@ -32,25 +32,19 @@ class MeasureMeshCreator:
         Lambda = mesh_data["Lambda"]
         Omega = mesh_data["Omega"]
         Lambda_edge_marker = mesh_data["Lambda_edge_marker"]
+        G_copy = mesh_data["G_copy"]
 
-        # Mark the sink boundary on Omega
+        # Mark the sink boundary on Ω
         boundary_Omega = MeshFunction("size_t", Omega, Omega.topology().dim() - 1, 0)
         self.Omega_sink.mark(boundary_Omega, 1)
 
-        # Mark all boundaries of Lambda, then separate inlet endpoints if provided
+        # Create boundary markers for Λ endpoints, defaulting to 0
         Lambda_boundary_markers = MeshFunction("size_t", Lambda, Lambda.topology().dim() - 1, 0)
 
-        class AllBoundary(SubDomain):
-            def inside(self, x, on_boundary):
-                return on_boundary
-
-        all_boundary = AllBoundary()
-        all_boundary.mark(Lambda_boundary_markers, 1)
-
-        # If inlet points are specified, mark them distinctly
+        # If inlet points are specified, mark them as 1
         if self.inlet_points is not None:
             for node_id in self.inlet_points:
-                pos = self.G.nodes[node_id]["pos"]
+                pos = self.G_copy.nodes[node_id]["pos"]
 
                 class InletEndpoint(SubDomain):
                     def __init__(self, point):
@@ -66,21 +60,21 @@ class MeasureMeshCreator:
                         )
 
                 inlet_subdomain = InletEndpoint(pos)
-                inlet_subdomain.mark(Lambda_boundary_markers, 2)
+                inlet_subdomain.mark(Lambda_boundary_markers, 1)
 
-        # Define interior measures for Omega and Lambda
+        # Define interior measures for Ω and Λ
         dxOmega = Measure("dx", domain=Omega)
         dxLambda = Measure("dx", domain=Lambda)
 
-        # Define boundary measures for Omega
+        # Define boundary measures for Ω
         dsOmega = Measure("ds", domain=Omega, subdomain_data=boundary_Omega)
         dsOmegaNeumann = dsOmega(0)  # Non-sink boundaries (Neumann)
         dsOmegaSink = dsOmega(1)     # Sink boundary
 
-        # Define boundary measures for Lambda endpoints
+        # Define boundary measures for Λ endpoints using markers 0 and 1
         dsLambda = Measure("ds", domain=Lambda, subdomain_data=Lambda_boundary_markers)
-        dsLambdaNeumann = dsLambda(1)   # Endpoints not marked as inlet (Neumann)
-        dsLambdaInlet = dsLambda(2)     # Endpoints marked as inlet (Dirichlet)
+        dsLambdaNeumann = dsLambda(0)  # Endpoints not marked as inlet (Neumann)
+        dsLambdaInlet = dsLambda(1)    # Endpoints marked as inlet (Dirichlet)
 
         # Update and return mesh and measure information
         mesh_data.update({
