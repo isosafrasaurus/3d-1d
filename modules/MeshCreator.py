@@ -43,7 +43,7 @@ def create_mesh(
     node_positions = nx.get_node_attributes(G, "pos")
     node_coords = np.array(list(node_positions.values()))
 
-    # Determine transformation parameters (scales and shifts) based on provided or computed bounds
+    # Determine transformation parameters based on provided or computed bounds
     if Omega_bounds_dim is None:
         xmin, ymin, zmin = np.min(node_coords, axis=0)
         xmax, ymax, zmax = np.max(node_coords, axis=0)
