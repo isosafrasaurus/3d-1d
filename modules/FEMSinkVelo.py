@@ -35,8 +35,8 @@ class FEMSinkVelo:
         self.Lambda = measure_creator.Lambda
         self.dsOmegaSink = measure_creator.dsOmegaSink
         self.dsOmegaNeumann = measure_creator.dsOmegaNeumann
-        self.dsLambdaNeumann = measure_creator.dsLambdaNeumann
         self.dsLambdaInlet = measure_creator.dsLambdaInlet
+        self.dsLambdaNeumann = measure_creator.dsLambdaNeumann
         self.dxOmega = measure_creator.dxOmega
         self.dxLambda = measure_creator.dxLambda
 
@@ -70,7 +70,7 @@ class FEMSinkVelo:
         D_area = np.pi * self.radius_map**2
         D_perimeter = 2.0 * np.pi * self.radius_map
 
-        # Assemble system matrices using the parameters and measures
+        # Assemble system matrices
         a00 = (
             Constant(self.k_t/self.mu) * inner(grad(u3), grad(v3)) * self.dxOmega
             + Constant(self.gamma_R) * u3 * v3 * self.dsOmegaSink
@@ -90,7 +90,7 @@ class FEMSinkVelo:
         L1 = - Constant(self.gamma_a/self.mu) * Constant(self.p_cvp) * v1 * self.dsLambdaNeumann
         L = [L0, L1]
 
-        # Boundary conditions - apply Dirichlet BC on 1D inlet where marker = 1
+        # Boundary conditions: apply Dirichlet BC on 1D inlet where marker = 1
         inlet_bc = DirichletBC(W[1], Constant(self.P_in), self.Lambda_boundary_markers, 1)
         inlet_bcs = [inlet_bc] if len(inlet_bc.get_boundary_values()) > 0 else []
         W_bcs = [[], inlet_bcs]
