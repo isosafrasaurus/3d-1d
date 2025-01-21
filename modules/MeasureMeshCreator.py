@@ -6,6 +6,7 @@ from graphnics import FenicsGraph
 from xii import *
 import networkx as nx
 import numpy as np
+import importlib
 import MeshCreator
 
 class Face(SubDomain):
@@ -13,7 +14,7 @@ class Face(SubDomain):
 
 class XZeroPlane(Face):
     def inside(self, x, on_boundary):
-        return on_boundary and near(x[0], 0.0, DOLFIN_EPS)
+        return on_boundary and not near(x[0], 0.0)
 
 class MeasureMeshCreator(MeshCreator.MeshCreator):
     def __init__(
@@ -26,6 +27,9 @@ class MeasureMeshCreator(MeshCreator.MeshCreator):
         Lambda_num_nodes_exp: int = 8,
         Lambda_inlet: Optional[List[int]] = None
     ):
+    
+        importlib.reload(MeshCreator)
+        
         super().__init__(
             G,
             Omega_bounds_dim=Omega_bounds_dim,
@@ -35,11 +39,13 @@ class MeasureMeshCreator(MeshCreator.MeshCreator):
         )
 
         # Mark the sink boundary on Omega
-        boundary_Omega = MeshFunction("size_t", self.Omega, self.Omega.topology().dim() - 1, 0)
+        boundary_Omega = MeshFunction("size_t", self.Omega, self.Omega.topology().dim() - 1)
+        boundary_Omega.set_all(0)
         Omega_sink.mark(boundary_Omega, 1)
 
-        # Create boundary markers for Lambda endpoints, defaulting to 0
-        Lambda_boundary_markers = MeshFunction("size_t", self.Lambda, self.Lambda.topology().dim() - 1, 0)
+        # Create boundary markers for Lambda endpoints
+        Lambda_boundary_markers = MeshFunction("size_t", self.Lambda, self.Lambda.topology().dim() - 1)
+        Lambda_boundary_markers.set_all(0)
 
         # If inlet points are specified, mark them as 1
         if Lambda_inlet is not None:
@@ -54,9 +60,9 @@ class MeasureMeshCreator(MeshCreator.MeshCreator):
                     def inside(self, x, on_boundary):
                         return (
                             on_boundary
-                            and near(x[0], self.point[0], DOLFIN_EPS)
-                            and near(x[1], self.point[1], DOLFIN_EPS)
-                            and near(x[2], self.point[2], DOLFIN_EPS)
+                            and not near(x[0], self.point[0])
+                            and not near(x[1], self.point[1])
+                            and not near(x[2], self.point[2])
                         )
 
                 inlet_subdomain = InletEndpoint(pos)
@@ -73,7 +79,7 @@ class MeasureMeshCreator(MeshCreator.MeshCreator):
 
         # Define boundary measures for Lambda
         dsLambda = Measure("ds", domain=self.Lambda, subdomain_data=Lambda_boundary_markers)
-        dsLambdaNeumann = dsLambda(0)  # Endpoints not marked as inlet (Neumann)
+        dsLambdaRobin = dsLambda(0)  # Endpoints not marked as inlet (Neumann)
         dsLambdaInlet = dsLambda(1)    # Endpoints marked as inlet (Dirichlet)
 
         # Assign additional results as fields of the object
@@ -83,5 +89,5 @@ class MeasureMeshCreator(MeshCreator.MeshCreator):
         self.dxLambda = dxLambda
         self.dsOmegaNeumann = dsOmegaNeumann
         self.dsOmegaSink = dsOmegaSink
-        self.dsLambdaNeumann = dsLambdaNeumann
+        self.dsLambdaRobin = dsLambdaRobin
         self.dsLambdaInlet = dsLambdaInlet
