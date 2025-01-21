@@ -232,9 +232,7 @@ class FEMSinkVelo:
 
     # Sum of 3D outflow + 1D outflow
     def calculate_total_outflow(self) -> float:
-        # return self.calculate_3d_outflow() + self.calculate_1d_outflow()
-        temp = self.calculate_1d_outflow()
-        return temp + random.uniform(0.1,0.3) * temp
+        return self.calculate_3d_outflow() + self.calculate_1d_outflow()
 
     # Debug function: integrate velocity dot n over *all* 3D boundaries
     def calculate_total_flow_all_boundaries(self) -> float:
