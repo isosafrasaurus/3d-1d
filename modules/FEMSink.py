@@ -23,12 +23,22 @@ class FEMSink:
         p_cvp: float,
         Lambda_inlet: List[int],
         Omega_sink: SubDomain = MeasureMeshCreator.XZeroPlane(),
-        Omega_bounds_dim: Optional[List[List[int]]] = None
+        Omega_bounds_dim: Optional[List[List[float]]] = None,
+        Omega_mesh_voxel_dim: List[int] = [32, 32, 32],
+        Lambda_padding_min: float = 8,
+        Lambda_num_nodes_exp: int = 8
     ):
-    
         importlib.reload(MeasureMeshCreator)
     
-        measure_creator = MeasureMeshCreator.MeasureMeshCreator(G, Omega_sink, Lambda_inlet=Lambda_inlet)
+        measure_creator = MeasureMeshCreator.MeasureMeshCreator(
+            G,
+            Lambda_inlet,
+            Omega_sink,
+            Omega_bounds_dim = Omega_bounds_dim,
+            Omega_mesh_voxel_dim = Omega_mesh_voxel_dim,
+            Lambda_padding_min = Lambda_padding_min,
+            Lambda_num_nodes_exp = Lambda_num_nodes_exp
+        )
         
         self.Omega = measure_creator.Omega
         self.Lambda = measure_creator.Lambda
@@ -67,8 +77,8 @@ class FEMSink:
         # Assemble system matrices
         a00 = (
             Constant(self.k_t/self.mu) * inner(grad(u3), grad(v3)) * self.dxOmega
-            + Constant(self.gamma_R) * u3 * v3 * self.dsOmegaSink
             + Constant(self.gamma) * u3_avg * v3_avg * D_perimeter * self.dxLambda
+            + Constant(self.gamma_R) * u3 * v3 * self.dsOmegaSink
         )
         a01 = - Constant(self.gamma) * u1 * v3_avg * D_perimeter * self.dxLambda
         a10 = - Constant(self.gamma) * u3_avg * v1 * D_perimeter * self.dxLambda
@@ -80,7 +90,7 @@ class FEMSink:
         a = [[a00, a01],
              [a10, a11]]
 
-        L0 = Constant(self.gamma_R) * Constant(self.p_cvp) * v3 * self.dsOmegaSink
+        L0 = - Constant(self.gamma_R) * Constant(self.p_cvp) * v3 * self.dsOmegaSink
         L1 = - Constant(self.gamma_a/self.mu) * Constant(self.p_cvp) * v1 * self.dsLambdaRobin
         L = [L0, L1]
 

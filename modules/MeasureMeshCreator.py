@@ -14,18 +14,18 @@ class Face(SubDomain):
 
 class XZeroPlane(Face):
     def inside(self, x, on_boundary):
-        return on_boundary and not near(x[0], 0.0)
+        return on_boundary and np.abs(x[0] - 0.0) < 1
 
 class MeasureMeshCreator(MeshCreator.MeshCreator):
     def __init__(
         self,
         G: FenicsGraph,
+        Lambda_inlet: Optional[List[int]],
         Omega_sink: Face,
-        Omega_bounds_dim: Optional[List[List[float]]] = None,
-        Omega_mesh_voxel_dim: List[int] = [32, 32, 32],
-        Lambda_padding_min: float = 8,
-        Lambda_num_nodes_exp: int = 8,
-        Lambda_inlet: Optional[List[int]] = None
+        Omega_bounds_dim: Optional[List[List[float]]],
+        Omega_mesh_voxel_dim: List[int],
+        Lambda_padding_min: float,
+        Lambda_num_nodes_exp: int
     ):
     
         importlib.reload(MeshCreator)
@@ -39,13 +39,11 @@ class MeasureMeshCreator(MeshCreator.MeshCreator):
         )
 
         # Mark the sink boundary on Omega
-        boundary_Omega = MeshFunction("size_t", self.Omega, self.Omega.topology().dim() - 1)
-        boundary_Omega.set_all(0)
+        boundary_Omega = MeshFunction("size_t", self.Omega, self.Omega.topology().dim() - 1, 0)
         Omega_sink.mark(boundary_Omega, 1)
 
         # Create boundary markers for Lambda endpoints
-        Lambda_boundary_markers = MeshFunction("size_t", self.Lambda, self.Lambda.topology().dim() - 1)
-        Lambda_boundary_markers.set_all(0)
+        Lambda_boundary_markers = MeshFunction("size_t", self.Lambda, self.Lambda.topology().dim() - 1, 0)
 
         # If inlet points are specified, mark them as 1
         if Lambda_inlet is not None:
@@ -56,6 +54,7 @@ class MeasureMeshCreator(MeshCreator.MeshCreator):
                     def __init__(self, point):
                         super().__init__()
                         self.point = point
+                        print(str(point) + " MARKED!")
 
                     def inside(self, x, on_boundary):
                         return (
@@ -79,7 +78,7 @@ class MeasureMeshCreator(MeshCreator.MeshCreator):
 
         # Define boundary measures for Lambda
         dsLambda = Measure("ds", domain=self.Lambda, subdomain_data=Lambda_boundary_markers)
-        dsLambdaRobin = dsLambda(0)  # Endpoints not marked as inlet (Neumann)
+        dsLambdaRobin = dsLambda(0)  # Endpoints not marked as inlet (Robin)
         dsLambdaInlet = dsLambda(1)    # Endpoints marked as inlet (Dirichlet)
 
         # Assign additional results as fields of the object

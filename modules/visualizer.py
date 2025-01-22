@@ -3,7 +3,7 @@ from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 from scipy.interpolate import griddata
 
-class YourClass:
+class Visualizer:
     def __init__(self, uh3d, uh1d):
         self.uh3d = uh3d
         self.uh1d = uh1d

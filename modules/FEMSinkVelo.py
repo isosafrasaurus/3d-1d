@@ -10,34 +10,12 @@ import FEMSink
 importlib.reload(FEMSink)
 
 class FEMSinkVelo(FEMSink.FEMSink):
-    def __init__(
-        self,
-        G: "FenicsGraph",
-        gamma: float,
-        gamma_a: float,
-        gamma_R: float,
-        gamma_v: float,
-        mu: float,
-        k_t: float,
-        k_v: float,
-        P_in: float,
-        p_cvp: float,
-        Lambda_inlet: List[int],
-        Omega_sink: SubDomain = MeasureMeshCreator.XZeroPlane(),
-        Omega_bounds_dim: Optional[List[List[int]]] = None
-    ):
-        # Initialize base FEMSink
-        super().__init__(
-            G, gamma, gamma_a, gamma_R, gamma_v, mu,
-            k_t, k_v, P_in, p_cvp, Lambda_inlet,
-            Omega_sink, Omega_bounds_dim
-        )
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
-        # Compute velocity in 3D: u_3 = -(k_t/mu)*grad(uh3d)
         V_vector = VectorFunctionSpace(self.Omega, "CG", 1)
         u_vel = TrialFunction(V_vector)
         v_vel = TestFunction(V_vector)
-
         a_vel = dot(u_vel, v_vel) * dx
         L_vel = - Constant(self.k_t/self.mu) * dot(grad(self.uh3d), v_vel) * self.dxOmega
 
