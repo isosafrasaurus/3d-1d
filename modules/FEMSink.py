@@ -7,6 +7,7 @@ import MeasureMeshCreator
 import VTKExporter
 import importlib
 import RadiusFunction
+import os
 
 class FEMSink:
     def __init__(
@@ -34,10 +35,10 @@ class FEMSink:
             G,
             Lambda_inlet,
             Omega_sink,
-            Omega_bounds_dim = Omega_bounds_dim,
-            Omega_mesh_voxel_dim = Omega_mesh_voxel_dim,
-            Lambda_padding_min = Lambda_padding_min,
-            Lambda_num_nodes_exp = Lambda_num_nodes_exp
+            Omega_bounds_dim=Omega_bounds_dim,
+            Omega_mesh_voxel_dim=Omega_mesh_voxel_dim,
+            Lambda_padding_min=Lambda_padding_min,
+            Lambda_num_nodes_exp=Lambda_num_nodes_exp
         )
         
         self.Omega = measure_creator.Omega
@@ -48,6 +49,11 @@ class FEMSink:
         self.dsLambdaRobin = measure_creator.dsLambdaRobin
         self.dxOmega = measure_creator.dxOmega
         self.dxLambda = measure_creator.dxLambda
+
+        # **Access the MeshFunction for Omega boundaries**
+        self.boundary_Omega = measure_creator.boundary_Omega  # Added line
+
+        self.Lambda_boundary_markers = measure_creator.Lambda_boundary_markers  # Ensure this is accessible
 
         self.mu = mu
         self.k_t = k_t
@@ -76,29 +82,30 @@ class FEMSink:
 
         # Assemble system matrices
         a00 = (
-            Constant(self.k_t/self.mu) * inner(grad(u3), grad(v3)) * self.dxOmega
+            Constant(self.k_t / self.mu) * inner(grad(u3), grad(v3)) * self.dxOmega
             + Constant(self.gamma) * u3_avg * v3_avg * D_perimeter * self.dxLambda
             + Constant(self.gamma_R) * u3 * v3 * self.dsOmegaSink
         )
-        a01 = - Constant(self.gamma) * u1 * v3_avg * D_perimeter * self.dxLambda
-        a10 = - Constant(self.gamma) * u3_avg * v1 * D_perimeter * self.dxLambda
+        a01 = -Constant(self.gamma) * u1 * v3_avg * D_perimeter * self.dxLambda
+        a10 = -Constant(self.gamma) * u3_avg * v1 * D_perimeter * self.dxLambda
         a11 = (
-            Constant(self.k_v/self.mu) * inner(grad(u1), grad(v1)) * D_area * self.dxLambda
+            Constant(self.k_v / self.mu) * inner(grad(u1), grad(v1)) * D_area * self.dxLambda
             + Constant(self.gamma) * u1 * v1 * D_perimeter * self.dxLambda
-            - Constant(self.gamma_a/self.mu) * u1 * v1 * self.dsLambdaRobin
+            - Constant(self.gamma_a / self.mu) * u1 * v1 * self.dsLambdaRobin
         )
         a = [[a00, a01],
              [a10, a11]]
 
-        L0 = - Constant(self.gamma_R) * Constant(self.p_cvp) * v3 * self.dsOmegaSink
-        L1 = - Constant(self.gamma_a/self.mu) * Constant(self.p_cvp) * v1 * self.dsLambdaRobin
+        L0 = -Constant(self.gamma_R) * Constant(self.p_cvp) * v3 * self.dsOmegaSink
+        L1 = -Constant(self.gamma_a / self.mu) * Constant(self.p_cvp) * v1 * self.dsLambdaRobin
         L = [L0, L1]
 
         # Boundary conditions: apply Dirichlet BC on 1D inlet where marker = 1
-        inlet_bc = DirichletBC(V1, Constant(self.P_in), measure_creator.Lambda_boundary_markers, 1)
+        inlet_bc = DirichletBC(V1, Constant(self.P_in), self.Lambda_boundary_markers, 1)
         inlet_bcs = [inlet_bc] if len(inlet_bc.get_boundary_values()) > 0 else []
         W_bcs = [[], inlet_bcs]
 
+        # Apply boundary conditions if any
         A, b = map(ii_assemble, (a, L))
         if any(W_bcs[0]) or any(W_bcs[1]):
             print("Applied BC! Non-empty list")
@@ -107,6 +114,7 @@ class FEMSink:
             print("WARNING! No Dirichlet BCs applied!")
         A, b = map(ii_convert, (A, b))
 
+        # Solve the system
         wh = ii_Function(W)
         solver = LUSolver(A, "mumps")
         solver.solve(wh.vector(), b)
@@ -120,7 +128,6 @@ class FEMSink:
 
         out_1d = os.path.join(directory_path, "pressure1d.vtk")
         out_3d = os.path.join(directory_path, "pressure3d.pvd")
-        out_vel = os.path.join(directory_path, "velocity3d.pvd")
 
         VTKExporter.fenics_to_vtk(
             self.Lambda,
@@ -129,4 +136,3 @@ class FEMSink:
             uh1d=self.uh1d
         )
         File(out_3d) << self.uh3d
-        File(out_vel) << self.velocity

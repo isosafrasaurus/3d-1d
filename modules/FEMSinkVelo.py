@@ -6,12 +6,13 @@ import numpy as np
 import MeasureMeshCreator
 import importlib
 import FEMSink
-
-importlib.reload(FEMSink)
+import VTKExporter
 
 class FEMSinkVelo(FEMSink.FEMSink):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        importlib.reload(FEMSink)
 
         V_vector = VectorFunctionSpace(self.Omega, "CG", 1)
         u_vel = TrialFunction(V_vector)
@@ -81,3 +82,19 @@ class FEMSinkVelo(FEMSink.FEMSink):
         ds_all = Measure("ds", domain=self.Omega)
         n = FacetNormal(self.Omega)
         return assemble(dot(self.velocity, n) * ds_all)
+    
+    def save_vtk(self, directory_path: str):
+        os.makedirs(directory_path, exist_ok=True)
+
+        out_1d = os.path.join(directory_path, "pressure1d.vtk")
+        out_3d = os.path.join(directory_path, "pressure3d.pvd")
+        out_vel = os.path.join(directory_path, "velocity3d.pvd")
+
+        VTKExporter.fenics_to_vtk(
+            self.Lambda,
+            out_1d,
+            self.radius_map,
+            uh1d=self.uh1d
+        )
+        File(out_3d) << self.uh3d
+        File(out_vel) << self.velocity
