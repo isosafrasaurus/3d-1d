@@ -10,7 +10,7 @@ class MeshCreator:
         self,
         G: FenicsGraph,
         Omega_bounds_dim: Optional[List[List[float]]] = None,
-        Omega_mesh_voxel_dim: List[int] = [32, 32, 32],
+        Omega_mesh_voxel_dim: List[int] = [16, 16, 16],
         Lambda_padding_min: float = 0.008,
         Lambda_num_nodes_exp: int = 8,
     ):
@@ -60,14 +60,13 @@ class MeshCreator:
         # Apply transformation to Omega mesh coordinates
         Omega_coords[:,:] = Omega_coords * scales + shifts
 
-        # Create a copy of G as a networkx graph and update its node positions
-        G_copy = nx.Graph(G)
-        for node in G_copy.nodes:
-            original_pos = np.array(G_copy.nodes[node]["pos"])
-            G_copy.nodes[node]["pos"] = original_pos * scales + shifts
+        Omega_min = np.min(Omega_coords, axis=0)
+        Omega_max = np.max(Omega_coords, axis=0)
+        print("Omega bounding coordinates:")
+        print("Min:", Omega_min)
+        print("Max:", Omega_max)
 
         # Store desired results as fields of the object
         self.Lambda = Lambda
         self.Omega = Omega
         self.Lambda_edge_marker = Lambda_edge_marker
-        self.G_copy = G_copy

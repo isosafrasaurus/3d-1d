@@ -24,21 +24,16 @@ class FEMSink:
         p_cvp: float,
         Lambda_inlet: List[int],
         Omega_sink: SubDomain = MeasureMeshCreator.XZeroPlane(),
-        Omega_bounds_dim: Optional[List[List[float]]] = None,
-        Omega_mesh_voxel_dim: List[int] = [32, 32, 32],
-        Lambda_padding_min: float = 8,
-        Lambda_num_nodes_exp: int = 8
+        **kwargs
     ):
         importlib.reload(MeasureMeshCreator)
-    
+
+        mm_kwargs = {k: v for k, v in kwargs.items() if v is not None}    
         measure_creator = MeasureMeshCreator.MeasureMeshCreator(
             G,
             Lambda_inlet,
             Omega_sink,
-            Omega_bounds_dim=Omega_bounds_dim,
-            Omega_mesh_voxel_dim=Omega_mesh_voxel_dim,
-            Lambda_padding_min=Lambda_padding_min,
-            Lambda_num_nodes_exp=Lambda_num_nodes_exp
+            **mm_kwargs
         )
         
         self.Omega = measure_creator.Omega

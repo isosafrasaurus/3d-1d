@@ -7,12 +7,13 @@ import MeasureMeshCreator
 import importlib
 import FEMSink
 import VTKExporter
+import FEMSink2
 
-class FEMSinkVelo(FEMSink.FEMSink):
+class FEMSinkVelo(FEMSink2.FEMSink):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        importlib.reload(FEMSink)
+        importlib.reload(FEMSink2)
 
         V_vector = VectorFunctionSpace(self.Omega, "CG", 1)
         u_vel = TrialFunction(V_vector)
@@ -73,10 +74,10 @@ class FEMSinkVelo(FEMSink.FEMSink):
                     flux_i = (self.gamma_a/self.mu) * (pval - self.p_cvp)
                     outflow_total += flux_i
 
-        return outflow_total
+        return self.calculate_1d_inflow()
 
     def calculate_total_outflow(self) -> float:
-        return self.calculate_3d_outflow() + self.calculate_1d_outflow()
+        return self.calculate_1d_outflow()
 
     def calculate_total_flow_all_boundaries(self) -> float:
         ds_all = Measure("ds", domain=self.Omega)

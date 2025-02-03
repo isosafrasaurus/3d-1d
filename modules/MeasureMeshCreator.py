@@ -1,5 +1,3 @@
-# MeasureMeshCreator.py
-
 from typing import Optional, List
 from dolfin import (
     MeshFunction, SubDomain, Measure, near, DOLFIN_EPS, Mesh
@@ -11,34 +9,28 @@ import importlib
 import MeshCreator
 import os
 
+importlib.reload(MeshCreator)
+
 class Face(SubDomain):
     pass
 
 class XZeroPlane(Face):
     def inside(self, x, on_boundary):
-        return on_boundary and near(x[0], 0.0, DOLFIN_EPS)
+        return on_boundary and near(x[0], -0.008)
 
 class MeasureMeshCreator(MeshCreator.MeshCreator):
     def __init__(
         self,
         G: FenicsGraph,
-        Lambda_inlet: Optional[List[int]],
+        Lambda_inlet: List[int],
         Omega_sink: SubDomain,
-        Omega_bounds_dim: Optional[List[List[float]]],
-        Omega_mesh_voxel_dim: List[int],
-        Lambda_padding_min: float,
-        Lambda_num_nodes_exp: int
+        **kwargs
     ):
     
         importlib.reload(MeshCreator)
-        
-        super().__init__(
-            G,
-            Omega_bounds_dim=Omega_bounds_dim,
-            Omega_mesh_voxel_dim=Omega_mesh_voxel_dim,
-            Lambda_padding_min=Lambda_padding_min,
-            Lambda_num_nodes_exp=Lambda_num_nodes_exp
-        )
+
+        super_kwargs = mm_kwargs = {k: v for k, v in kwargs.items() if v is not None}
+        super().__init__(G, **super_kwargs)
 
         # Mark the sink boundary on Omega
         boundary_Omega = MeshFunction("size_t", self.Omega, self.Omega.topology().dim() - 1, 0)
@@ -49,7 +41,6 @@ class MeasureMeshCreator(MeshCreator.MeshCreator):
 
         # If inlet points are specified, mark them as 1
         if Lambda_inlet is not None:
-            # Access mesh coordinates directly
             lambda_coordinates = self.Lambda.coordinates()
 
             for node_id in Lambda_inlet:
@@ -60,19 +51,16 @@ class MeasureMeshCreator(MeshCreator.MeshCreator):
                 pos = lambda_coordinates[node_id]
 
                 class InletEndpoint(SubDomain):
-                    def __init__(self, point, tol=1e-8):
+                    def __init__(self, point):
                         super().__init__()
                         self.point = point
-                        self.tol = tol
-                        print(f"Inlet endpoint at {self.point} marked!")
 
                     def inside(self, x, on_boundary):
-                        # Mark only those boundary points that are near self.point
                         return (
                             on_boundary
-                            and near(x[0], self.point[0], self.tol)
-                            and near(x[1], self.point[1], self.tol)
-                            and near(x[2], self.point[2], self.tol)
+                            and near(x[0], self.point[0])
+                            and near(x[1], self.point[1])
+                            and near(x[2], self.point[2])
                         )
 
                 inlet_subdomain = InletEndpoint(pos)
@@ -103,42 +91,3 @@ class MeasureMeshCreator(MeshCreator.MeshCreator):
         self.dsOmegaSink = dsOmegaSink
         self.dsLambdaRobin = dsLambdaRobin
         self.dsLambdaInlet = dsLambdaInlet
-
-    def check_inlet_boundary(self):
-        """
-        Checks whether the 1D inlet boundary (dsLambdaInlet) is applied.
-        Prints the number of endpoints marked as inlet and a confirmation message.
-        """
-        inlet_markers = self.Lambda_boundary_markers
-
-        try:
-            # For older FEniCS versions
-            inlet_array = inlet_markers.array()
-        except AttributeError:
-            try:
-                # For newer FEniCS versions
-                inlet_array = inlet_markers.values()
-            except AttributeError:
-                # As a fallback, use .vector().get_local()
-                inlet_array = inlet_markers.vector().get_local()
-
-        num_inlet_facets = np.sum(inlet_array == 1)
-
-        if num_inlet_facets > 0:
-            print(f"[CHECK] 1D Inlet boundary is applied on {num_inlet_facets} facet(s).")
-        else:
-            print("[WARNING] 1D Inlet boundary is NOT applied on any facets.")
-
-    def export_boundary_markers(self, directory_path: str):
-        """
-        Exports the boundary markers to VTK files for visualization.
-        """
-        os.makedirs(directory_path, exist_ok=True)
-        
-        # Export Omega boundaries
-        omega_vtk = os.path.join(directory_path, "boundary_Omega.pvd")
-        File(omega_vtk) << self.boundary_Omega
-        
-        # Export Lambda boundaries
-        lambda_vtk = os.path.join(directory_path, "boundary_Lambda.pvd")
-        File(lambda_vtk) << self.Lambda_boundary_markers
