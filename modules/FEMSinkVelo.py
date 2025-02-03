@@ -7,13 +7,13 @@ import MeasureMeshCreator
 import importlib
 import FEMSink
 import VTKExporter
-import FEMSink2
+import FEMSink
 
-class FEMSinkVelo(FEMSink2.FEMSink):
+class FEMSinkVelo(FEMSink.FEMSink):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        importlib.reload(FEMSink2)
+        importlib.reload(FEMSink)
 
         V_vector = VectorFunctionSpace(self.Omega, "CG", 1)
         u_vel = TrialFunction(V_vector)
