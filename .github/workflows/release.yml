@@ -1,63 +1,39 @@
-name: Manual Release
+name: Release Container
 
 on:
   workflow_dispatch:
-
-permissions:
-  contents: write
-  packages: write
+    inputs:
+      tag:
+        description: 'Tag for the new release container (e.g. latest, v1.0.0)'
+        required: true
+        default: 'latest'
 
 jobs:
   release:
     runs-on: ubuntu-latest
     container:
-      image: isosafrasaurus/jupyter_fem_base:latest
-      # VERY IMPORTANT: Map the correct user and group IDs
-      options: --user 1001:121
+      image: ghcr.io/isosafrasaurus/3d-1d:0
+      options: --privileged
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          path: /home/jovyan/work
-          repository: isosafrasaurus/3d-1d
+      - name: Checkout Repository
+        uses: actions/checkout@v3
 
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+      - name: Prepare Working Directory
+        run: |
+          mkdir -p /home/jovyan/work
+          cp -R /github/workspace/* /home/jovyan/work/
 
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v3
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
         with:
           registry: ghcr.io
-          username: ${{ github.repository_owner }}
+          username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Get Image Tag (Date and Short SHA)
-        id: image_tag
-        run: |
-          echo "tag=latest,$(date +'%Y%m%d')-$(echo ${{ github.sha }} | cut -c1-8)" >> $GITHUB_OUTPUT
-        shell: bash
-
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+      - name: Build and Push Docker Image
+        uses: docker/build-push-action@v4
         with:
           context: /home/jovyan/work
           push: true
-          tags: |
-             ghcr.io/isosafrasaurus/3d-1d:${{ steps.image_tag.outputs.tag }}
-             ghcr.io/isosafrasaurus/3d-1d:latest
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Create Release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ steps.image_tag.outputs.tag }}
-          release_name: Release ${{ steps.image_tag.outputs.tag }}
-          draft: false
-          prerelease: false
-          body: |
-            Automated release built from commit ${{ github.sha }}.
-            Docker image: `ghcr.io/isosafrasaurus/3d-1d:${{ steps.image_tag.outputs.tag }}`
+          tags: ghcr.io/isosafrasaurus/3d-1d:${{ github.event.inputs.tag }}
