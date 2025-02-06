@@ -1,101 +1,76 @@
-from dolfin import *
-from graphnics import *
-from xii import *
-from typing import Optional, List, Any
 import numpy as np
-import MeasureMeshCreator
+import math
+from dolfin import *
+import FEMSink2
 import importlib
-import FEMSink
-import VTKExporter
-import FEMSink
 
-class FEMSinkVelo(FEMSink.FEMSink):
+importlib.reload(FEMSink2)
+
+class FEMSinkVelo(FEMSink2.FEMSink):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        V_vec = VectorFunctionSpace(self.Omega, "CG", 1)
+        self.velocity = project(Constant(self.k_t/self.mu)*grad(self.uh3d), V_vec)
 
-        importlib.reload(FEMSink)
-
-        V_vector = VectorFunctionSpace(self.Omega, "CG", 1)
-        u_vel = TrialFunction(V_vector)
-        v_vel = TestFunction(V_vector)
-        a_vel = dot(u_vel, v_vel) * dx
-        L_vel = - Constant(self.k_t/self.mu) * dot(grad(self.uh3d), v_vel) * self.dxOmega
-
-        A_vel = assemble(a_vel)
-        b_vel = assemble(L_vel)
-        solver_vel = LUSolver(A_vel, "mumps")
-        velocity = Function(V_vector, name="Velocity Field")
-        solver_vel.solve(velocity.vector(), b_vel)
-        velocity.rename("Velocity", "Velocity Field")
-        self.velocity = velocity
-
-    def calculate_3d_outflow(self) -> float:
+    def compute_outflow_all(self):
         n = FacetNormal(self.Omega)
-        return assemble(dot(self.velocity, n) * self.dsOmegaSink)
+        return assemble(dot(self.velocity, n)*ds)
 
-    def calculate_1d_inflow(self) -> float:
-        mesh1d = self.Lambda
-        v0 = Vertex(mesh1d, 0)
-        edges = list(v0.entities(1))
-        if not edges:
-            return 0.0
-
-        e = Edge(mesh1d, edges[0])
-        vs = list(e.entities(0))
-        neighbor_v = vs[0] if vs[0] != v0.index() else vs[1]
-        v1 = Vertex(mesh1d, neighbor_v)
-
-        coords0 = np.array(v0.point().array())
-        coords1 = np.array(v1.point().array())
-        dist = np.linalg.norm(coords1 - coords0)
-        if dist < 1e-14:
-            return 0.0
-
-        p0 = self.uh1d(v0.point())
-        p1 = self.uh1d(v1.point())
-        dP_ds = (p1 - p0) / dist
-
-        r0 = float(self.radius_map(v0.point()))
-        A0 = np.pi * (r0**2)
-        return -A0 * (self.k_v/self.mu) * dP_ds
-
-    def calculate_1d_outflow(self) -> float:
-        boundary_markers = self.dsLambdaRobin.subdomain_data()
-        mesh1d = self.Lambda
-        outflow_total = 0.0
-
-        for f in facets(mesh1d):
-            # Check if facet f is marked as outflow boundary (marker value 1)
-            if boundary_markers[f.index()] == 1:
-                vs = list(f.entities(0))
-                for vid in vs:
-                    v = Vertex(mesh1d, vid)
-                    pval = self.uh1d(v.point())
-                    flux_i = (self.gamma_a/self.mu) * (pval - self.p_cvp)
-                    outflow_total += flux_i
-
-        return self.calculate_1d_inflow()
-
-    def calculate_total_outflow(self) -> float:
-        return self.calculate_1d_outflow()
-
-    def calculate_total_flow_all_boundaries(self) -> float:
-        ds_all = Measure("ds", domain=self.Omega)
+    def compute_outflow_sink(self):
         n = FacetNormal(self.Omega)
-        return assemble(dot(self.velocity, n) * ds_all)
-    
+        return assemble(dot(self.velocity, n)*self.dsOmegaSink)
+
+    def compute_inflow_inlet(self):
+        inlet_bc = self._retrieve_inlet_bc()
+        bc_dofs = list(inlet_bc.get_boundary_values().keys())  # dict_keys -> list
+        if len(bc_dofs) == 0:
+            raise RuntimeError("No inlet DOFs found! Check your boundary condition setup.")
+        inlet_dof = bc_dofs[0]
+
+        cell_nodes = self.Lambda.cells() 
+        next_dof = None
+        for cn in cell_nodes:
+            if inlet_dof in cn:
+                if cn[0] == inlet_dof:
+                    next_dof = cn[1]
+                else:
+                    next_dof = cn[0]
+                break
+        if next_dof is None:
+            raise RuntimeError("Could not find a neighbor edge for the inlet DOF.")
+
+        p_1d_array = self.uh1d.vector().get_local()
+        p_inlet = p_1d_array[inlet_dof]
+        p_neighbor = p_1d_array[next_dof]
+        dp = p_inlet - p_neighbor  # difference
+
+        coords = self.Lambda.coordinates()  # shape (#vertices, geometric_dim)
+        x_inlet = coords[inlet_dof]
+        x_next  = coords[next_dof]
+        length_segment = np.linalg.norm(x_inlet - x_next)
+
+        midpoint = 0.5*(x_inlet + x_next)
+        # Fenics expects a point if radius_map is a standard Expression or Function
+        radius_mid = self.radius_map(Point(*midpoint))  # if dimension matches
+        # cross-sectional area
+        area_mid = math.pi*(radius_mid**2)
+        flux = (self.k_v/self.mu)*area_mid*(dp/length_segment)
+        return flux
+
     def save_vtk(self, directory_path: str):
+        import os
         os.makedirs(directory_path, exist_ok=True)
 
-        out_1d = os.path.join(directory_path, "pressure1d.vtk")
-        out_3d = os.path.join(directory_path, "pressure3d.pvd")
-        out_vel = os.path.join(directory_path, "velocity3d.pvd")
+        # Call parent's method to write 3D and 1D solutions
+        super().save_vtk(directory_path)
 
-        VTKExporter.fenics_to_vtk(
-            self.Lambda,
-            out_1d,
-            self.radius_map,
-            uh1d=self.uh1d
-        )
-        File(out_3d) << self.uh3d
-        File(out_vel) << self.velocity
+        # Now write velocity as well
+        velocity_file = File(os.path.join(directory_path, "velocity3d.pvd"))
+        velocity_file << self.velocity
+
+    def _retrieve_inlet_bc(self):
+        if hasattr(self, 'W_bcs'):
+            bc_list = self.W_bcs[1]
+            if bc_list:
+                return bc_list[0]
+        raise RuntimeError("No inlet BC found in self.W_bcs. Adjust _retrieve_inlet_bc() to your setup.")
