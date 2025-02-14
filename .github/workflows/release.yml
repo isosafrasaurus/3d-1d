@@ -1,4 +1,4 @@
-name: Build and release image of repo contents
+name: Build and release with repo contents
 
 on:
   workflow_dispatch:
@@ -9,7 +9,7 @@ on:
         default: "no"
 
 env:
-  IMAGE_PREFIX: ghcr.io/isosafrasaurus/3d-1d
+  IMAGE_PREFIX: ghcr.io/isosafrasaurus/fem-on-jupyter/fenics
 
 jobs:
   release:
@@ -21,49 +21,29 @@ jobs:
       - name: Determine whether to push the image
         id: push
         run: |
-          PUSH=${{ github.event.inputs.push }}
-          if [[ "$PUSH" == "yes" ]]; then
+          if [[ "${{ github.event.inputs.push }}" == "yes" ]]; then
             echo "push=yes" >> $GITHUB_OUTPUT
           else
             echo "push=no" >> $GITHUB_OUTPUT
           fi
         shell: bash
 
-      - name: Get latest base image tag from GHCR
-        id: base_tag
+      - name: Create Dockerfile
         run: |
-          BASE_TAG=$(curl -s \
-            -H "Accept: application/vnd.github.v3+json" \
-            -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
-            "https://api.github.com/orgs/isosafrasaurus/packages/container/fenics/versions" | \
-            jq -r '.[0].metadata.container.tags[0]')
-          
-          if [ -z "$BASE_TAG" ]; then
-            echo "Error: No tag found for the base image." >&2
-            exit 1
-          fi
-
-          echo "base_tag=$BASE_TAG" >> $GITHUB_OUTPUT
-          echo "Using base image tag: $BASE_TAG"
-        shell: bash
-
-      - name: Create Dockerfile for new image
-        run: |
-          cat <<'EOF' > Dockerfile.fenics
-          FROM ghcr.io/isosafrasaurus/fem-on-jupyter/fenics:${{ steps.base_tag.outputs.base_tag }}
+          cat <<'EOF' > Dockerfile
+          FROM ghcr.io/isosafrasaurus/fem-on-jupyter/fenics:latest
           COPY . /root
           EOF
 
       - name: Build docker image
-        run: |
-          docker build --pull -t ${IMAGE_PREFIX}:latest -f Dockerfile.fenics .
+        run: docker build --pull -t ${IMAGE_PREFIX}:latest -f Dockerfile .
 
       - name: Determine image tag from latest commit
         id: image_tag
         run: |
           COMMIT_TAG=$(git rev-parse --short HEAD)
           echo "commit_tag=$COMMIT_TAG" >> $GITHUB_OUTPUT
-          echo "Image will be tagged with: $COMMIT_TAG"
+          echo "Image will be tagged as: $COMMIT_TAG"
         shell: bash
 
       - name: Log into GitHub Container Registry
