@@ -10,6 +10,6 @@ RUN git clone --single-branch -b "collapse-iter-dev" "https://github.com/MiroK/f
 RUN git clone "https://github.com/IngeborgGjerde/graphnics" /opt/graphnics && \
     pip install /opt/graphnics
 
-RUN git clone "https://github.com/isosafrasaurus/3d-1d" /root
+RUN git clone "https://github.com/isosafrasaurus/3d-1d" /root/3d-1d
 
 WORKDIR /root/3d-1d
