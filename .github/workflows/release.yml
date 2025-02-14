@@ -9,7 +9,7 @@ on:
         default: "no"
 
 env:
-  IMAGE_PREFIX: ghcr.io/isosafrasaurus/fem-on-jupyter/fenics
+  IMAGE_PREFIX: ghcr.io/isosafrasaurus/3d-1d
 
 jobs:
   release:
