@@ -28,15 +28,8 @@ jobs:
           fi
         shell: bash
 
-      - name: Create Dockerfile
-        run: |
-          cat <<'EOF' > Dockerfile
-          FROM ghcr.io/isosafrasaurus/fem-on-jupyter/fenics:latest
-          COPY . /root
-          EOF
-
       - name: Build docker image
-        run: docker build --pull -t ${IMAGE_PREFIX}:latest -f Dockerfile .
+        run: docker build --pull -t ${IMAGE_PREFIX}:latest -f .github/Dockerfile .
 
       - name: Determine image tag from latest commit
         id: image_tag
