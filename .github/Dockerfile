@@ -1,7 +1,5 @@
 FROM ghcr.io/isosafrasaurus/fem-on-jupyter/fenics:latest
 
-RUN apt-get update && apt-get install -y git
-
 RUN git clone "https://bitbucket.org/fenics-apps/cbc.block/src/master/" /opt/block && \
     pip install /opt/block
 
