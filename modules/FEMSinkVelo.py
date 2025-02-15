@@ -1,14 +1,30 @@
 import numpy as np
 import math
 from dolfin import *
-import FEMSink2
+import FEMSink
 import importlib
+from typing import Optional, List, Any
 
-importlib.reload(FEMSink2)
+importlib.reload(FEMSink)
 
-class FEMSinkVelo(FEMSink2.FEMSink):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+class FEMSinkVelo(FEMSink.FEMSink):
+    def __init__(
+        self,
+        G: "FenicsGraph",
+        gamma: float,
+        gamma_a: float,
+        gamma_R: float,
+        gamma_v: float,
+        mu: float,
+        k_t: float,
+        k_v: float,
+        P_in: float,
+        p_cvp: float,
+        Lambda_inlet: List[int],
+        Omega_sink: SubDomain = None,
+        **kwargs
+    ):
+        super().__init__(G, gamma, gamma_a, gamma_R, gamma_v, mu, k_t, k_v, P_in, p_cvp, Lambda_inlet, Omega_sink, **kwargs)
         V_vec = VectorFunctionSpace(self.Omega, "CG", 1)
         self.velocity = project(Constant(self.k_t/self.mu)*grad(self.uh3d), V_vec)
 

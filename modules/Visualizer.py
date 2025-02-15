@@ -235,22 +235,4 @@ def plot_path_pressure(uh1d, node_ids):
     plt.title('Pressure Along Path')
     plt.grid(True)
     
-    # Annotate each point with its pressure value, alternating label positions.
-    for i, (x, p) in enumerate(zip(cumulative_distance, path_pressure)):
-        # Alternate the vertical offset: above for even indices, below for odd.
-        if i % 2 == 0:
-            offset = (0, 10)
-        else:
-            offset = (0, -10)
-        
-        plt.annotate(
-            f"{p:.1f}",
-            xy=(x, p),
-            xytext=offset,
-            textcoords='offset points',
-            ha='center',
-            color='red',
-            arrowprops=dict(arrowstyle='->', color='red', lw=0.5)
-        )
-    
     plt.show()

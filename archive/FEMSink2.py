@@ -3,10 +3,10 @@ from graphnics import *
 from xii import *
 from typing import Optional, List, Any
 import numpy as np
+import MeasureMeshCreator
 import VTKExporter
 import importlib
 import RadiusFunction
-import MeasureMeshUtility
 import os
 
 class FEMSink:
@@ -23,30 +23,38 @@ class FEMSink:
         P_in: float,
         p_cvp: float,
         Lambda_inlet: List[int],
-        Omega_sink: SubDomain = None,
+        Omega_sink: SubDomain = MeasureMeshCreator.XZeroPlane,
         **kwargs
     ):
-        self.gamma = gamma
-        self.gamma_a = gamma_a
-        self.gamma_R = gamma_R
-        self.gamma_v = gamma_v
+        importlib.reload(MeasureMeshCreator)
+
+        mm_kwargs = {k: v for k, v in kwargs.items() if v is not None}    
+        measure_creator = MeasureMeshCreator.MeasureMeshCreator(
+            G,
+            Lambda_inlet,
+            Omega_sink,
+            **mm_kwargs
+        )
+        
+        self.Omega = measure_creator.Omega
+        self.Lambda = measure_creator.Lambda
+        self.dsOmegaSink = measure_creator.dsOmegaSink
+        self.dsOmegaNeumann = measure_creator.dsOmegaNeumann
+        self.dsLambdaInlet = measure_creator.dsLambdaInlet
+        self.dsLambdaRobin = measure_creator.dsLambdaRobin
+        self.dxOmega = measure_creator.dxOmega
+        self.dxLambda = measure_creator.dxLambda
+        self.boundary_Omega = measure_creator.boundary_Omega
+        self.boundary_Lambda = measure_creator.boundary_Lambda
+
         self.mu = mu
         self.k_t = k_t
         self.k_v = k_v
-        self.P_in = P_in
+        self.gamma = gamma
+        self.gamma_R = gamma_R
+        self.gamma_a = gamma_a
         self.p_cvp = p_cvp
-
-        mmu = MeasureMeshUtility.MeasureMeshUtility(G, Lambda_inlet, Omega_sink)
-        self.Omega = mmu.Omega
-        self.Lambda = mmu.Lambda
-        self.dsOmegaSink = mmu.dsOmegaSink
-        self.dsOmegaNeumann = mmu.dsOmegaNeumann
-        self.dsLambdaInlet = mmu.dsLambdaInlet
-        self.dsLambdaRobin = mmu.dsLambdaRobin
-        self.dxOmega = mmu.dxOmega
-        self.dxLambda = mmu.dxLambda
-        self.boundary_Omega = mmu.boundary_Omega
-        self.boundary_Lambda = mmu.boundary_Lambda
+        self.P_in = P_in
 
         V3 = FunctionSpace(self.Omega, "CG", 1)
         V1 = FunctionSpace(self.Lambda, "CG", 1)
@@ -54,7 +62,7 @@ class FEMSink:
         u3, u1 = map(TrialFunction, W)
         v3, v1 = map(TestFunction, W)
 
-        self.radius_map = RadiusFunction.RadiusFunction(G, mmu.Lambda_edge_marker, degree=5)
+        self.radius_map = RadiusFunction.RadiusFunction(G, measure_creator.Lambda_edge_marker, degree=5)
         cylinder = Circle(radius=self.radius_map, degree=5)
 
         u3_avg = Average(u3, self.Lambda, cylinder)

@@ -14,7 +14,6 @@ class FEMSinkCubeFlux(FEMSinkVelo):
         # Initialize parent class (this sets up the problem, solves it, and computes velocity)
         super().__init__(*args, **kwargs)
         
-        # --- Define two cube sub-boundaries within the 3D bulk mesh Omega ---
         # Retrieve all vertex coordinates of Omega to define the bounding box
         coords = self.Omega.coordinates()
         x_min, x_max = np.min(coords[:, 0]), np.max(coords[:, 0])

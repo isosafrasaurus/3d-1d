@@ -44,8 +44,11 @@ class FEMSink:
         self.dsLambdaRobin = measure_creator.dsLambdaRobin
         self.dxOmega = measure_creator.dxOmega
         self.dxLambda = measure_creator.dxLambda
-        self.boundary_Omega = measure_creator.boundary_Omega
-        self.Lambda_boundary_markers = measure_creator.Lambda_boundary_markers
+
+        # **Access the MeshFunction for Omega boundaries**
+        self.boundary_Omega = measure_creator.boundary_Omega  # Added line
+
+        self.Lambda_boundary_markers = measure_creator.Lambda_boundary_markers  # Ensure this is accessible
 
         self.mu = mu
         self.k_t = k_t
@@ -56,6 +59,7 @@ class FEMSink:
         self.p_cvp = p_cvp
         self.P_in = P_in
 
+        # Define function spaces and trial/test functions
         V3 = FunctionSpace(self.Omega, "CG", 1)
         V1 = FunctionSpace(self.Lambda, "CG", 1)
         W = [V3, V1]
@@ -71,37 +75,32 @@ class FEMSink:
         D_area = np.pi * self.radius_map**2
         D_perimeter = 2.0 * np.pi * self.radius_map
 
+        # Assemble system matrices
         a00 = (
             Constant(self.k_t / self.mu) * inner(grad(u3), grad(v3)) * self.dxOmega
-            + Constant(self.gamma_R) * u3 * v3 * self.dsOmegaSink
             + Constant(self.gamma) * u3_avg * v3_avg * D_perimeter * self.dxLambda
+            + Constant(self.gamma_R) * u3 * v3 * self.dsOmegaSink
         )
-        a01 = (
-            -Constant(self.gamma) * u1 * v3_avg * D_perimeter * self.dxLambda
-        )
-        a10 = (
-            -Constant(self.gamma) * u3_avg * v1 * D_perimeter * self.dxLambda
-        )
+        a01 = -Constant(self.gamma) * u1 * v3_avg * D_perimeter * self.dxLambda
+        a10 = -Constant(self.gamma) * u3_avg * v1 * D_perimeter * self.dxLambda
         a11 = (
             Constant(self.k_v / self.mu) * inner(grad(u1), grad(v1)) * D_area * self.dxLambda
             + Constant(self.gamma) * u1 * v1 * D_perimeter * self.dxLambda
-            + Constant(self.gamma_a / self.mu) * u1 * v1 * self.dsLambdaRobin
-        )
-        L0 = (
-            -Constant(self.gamma_R) * Constant(self.p_cvp) * v3 * self.dsOmegaSink
-        )
-        L1 = (
-            +Constant(self.gamma_a / self.mu) * Constant(self.p_cvp) * v1 * self.dsLambdaRobin
+            - Constant(self.gamma_a / self.mu) * u1 * v1 * self.dsLambdaRobin
         )
         a = [[a00, a01],
              [a10, a11]]
+
+        L0 = -Constant(self.gamma_R) * Constant(self.p_cvp) * v3 * self.dsOmegaSink
+        L1 = -Constant(self.gamma_a / self.mu) * Constant(self.p_cvp) * v1 * self.dsLambdaRobin
         L = [L0, L1]
 
+        # Boundary conditions: apply Dirichlet BC on 1D inlet where marker = 1
         inlet_bc = DirichletBC(V1, Constant(self.P_in), self.Lambda_boundary_markers, 1)
         inlet_bcs = [inlet_bc] if len(inlet_bc.get_boundary_values()) > 0 else []
         W_bcs = [[], inlet_bcs]
-        self.W_bcs = W_bcs
 
+        # Apply boundary conditions if any
         A, b = map(ii_assemble, (a, L))
         if any(W_bcs[0]) or any(W_bcs[1]):
             print("Applied BC! Non-empty list")
@@ -110,7 +109,7 @@ class FEMSink:
             print("WARNING! No Dirichlet BCs applied!")
         A, b = map(ii_convert, (A, b))
 
-        # Solve
+        # Solve the system
         wh = ii_Function(W)
         solver = LUSolver(A, "mumps")
         solver.solve(wh.vector(), b)
