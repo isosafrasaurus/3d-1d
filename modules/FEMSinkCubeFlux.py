@@ -22,7 +22,7 @@ class FEMSinkCubeFlux(FEMSinkVelo):
         z_min, z_max = np.min(coords[:, 2]), np.max(coords[:, 2])
         
         # Choose a cube side length: here, 10% of the smallest domain dimension
-        eps = 0.1 * min(x_max - x_min, y_max - y_min, z_max - z_min)
+        eps = 0.5 * min(x_max - x_min, y_max - y_min, z_max - z_min)
         
         # Define the lower cube sub-boundary (near the (x_min, y_min, z_min) corner)
         self.lower_cube_bounds = (x_min, x_min + eps, y_min, y_min + eps, z_min, z_min + eps)

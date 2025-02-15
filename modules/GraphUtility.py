@@ -1,6 +1,6 @@
 from graphnics import *
 
-def build_graph(node_coords, edges, subdivisions_per_edge):
+def build_fenicsgraph(node_coords, edges, subdivisions_per_edge):
     new_G = FenicsGraph()
 
     original_to_new = {}
