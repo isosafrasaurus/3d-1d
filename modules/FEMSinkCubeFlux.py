@@ -1,20 +1,13 @@
 import numpy as np
 import math
 from dolfin import *
-import FEMSink2
+import FEMSinkVelo
 import importlib
 
-importlib.reload(FEMSink2)
-
-# Assuming FEMSinkVelo is available; adjust the import path if needed.
-from FEMSinkVelo import FEMSinkVelo  
-
-class FEMSinkCubeFlux(FEMSinkVelo):
+class FEMSinkCubeFlux(FEMSinkVelo.FEMSinkVelo):
     def __init__(self, *args, **kwargs):
-        # Initialize parent class (this sets up the problem, solves it, and computes velocity)
         super().__init__(*args, **kwargs)
         
-        # Retrieve all vertex coordinates of Omega to define the bounding box
         coords = self.Omega.coordinates()
         x_min, x_max = np.min(coords[:, 0]), np.max(coords[:, 0])
         y_min, y_max = np.min(coords[:, 1]), np.max(coords[:, 1])
