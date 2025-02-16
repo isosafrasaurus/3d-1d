@@ -24,12 +24,13 @@ def plot_with_boundaries(uh1d, uh3d, z_level=None, cube_lower=None, cube_upper=N
     ax1 = fig.add_subplot(1, 2, 1, projection='3d')
     sc = ax1.scatter(coords1d[:, 0], coords1d[:, 1], coords1d[:, 2],
                      c=values1d, cmap='viridis', marker='o')
-    fig.colorbar(sc, ax=ax1, label='1D Pressure')
-    ax1.set_title('1D Pressure Scatter (3D)')
+    fig.colorbar(sc, ax=ax1, label='1D Pressure (Pa)')
+    ax1.set_title('1D Pressure Scatter')
     ax1.set_xlabel('X')
     ax1.set_ylabel('Y')
     ax1.set_zlabel('Z')
-    ax1.set_box_aspect([1, 1, 1])
+    ax1.set_adjustable('box')
+    # ax1.set_aspect('equal')
     
     def plot_3d_box(ax, x_min, x_max, y_min, y_max, z_min, z_max, color, label=None):
         corners = np.array([[x_min, y_min, z_min],
