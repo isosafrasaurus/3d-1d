@@ -3,23 +3,47 @@ import math
 from dolfin import *
 import FEMSinkVelo
 import importlib
+from typing import List, Optional
 
 class FEMSinkCubeFlux(FEMSinkVelo.FEMSinkVelo):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(
+        self,
+        G: "FenicsGraph",
+        gamma: float,
+        gamma_a: float,
+        gamma_R: float,
+        gamma_v: float,
+        mu: float,
+        k_t: float,
+        k_v: float,
+        P_in: float,
+        p_cvp: float,
+        Lambda_inlet: List[int],
+        Omega_sink: SubDomain = None,
+        lower_cube_bounds: Optional[List[List[float]]] = None,
+        upper_cube_bounds: Optional[List[List[float]]] = None,
+        **kwargs
+    ):
+        super().__init__(G, gamma, gamma_a, gamma_R, gamma_v, mu, k_t, k_v, P_in, p_cvp, Lambda_inlet, Omega_sink, **kwargs)
         
+        # Get the domain coordinates.
         coords = self.Omega.coordinates()
         x_min, x_max = np.min(coords[:, 0]), np.max(coords[:, 0])
         y_min, y_max = np.min(coords[:, 1]), np.max(coords[:, 1])
         z_min, z_max = np.min(coords[:, 2]), np.max(coords[:, 2])
         
-        # Choose a cube side length: here, 10% of the smallest domain dimension
+        # Choose a cube side length: here, 50% of the smallest domain dimension
         eps = 0.5 * min(x_max - x_min, y_max - y_min, z_max - z_min)
         
-        # Define the lower cube sub-boundary (near the (x_min, y_min, z_min) corner)
-        self.lower_cube_bounds = (x_min, x_min + eps, y_min, y_min + eps, z_min, z_min + eps)
-        # Define the upper cube sub-boundary (near the (x_max, y_max, z_max) corner)
-        self.upper_cube_bounds = (x_max - eps, x_max, y_max - eps, y_max, z_max - eps, z_max)
+        # Use provided bounds if available, otherwise auto-generate them.
+        # The expected format is [[x_min, y_min, z_min], [x_max, y_max, z_max]]
+        if lower_cube_bounds is None:
+            lower_cube_bounds = [[x_min, y_min, z_min], [x_min + eps, y_min + eps, z_min + eps]]
+        if upper_cube_bounds is None:
+            upper_cube_bounds = [[x_max - eps, y_max - eps, z_max - eps], [x_max, y_max, z_max]]
+            
+        self.lower_cube_bounds = lower_cube_bounds
+        self.upper_cube_bounds = upper_cube_bounds
         
         # Create a MeshFunction for the facets (boundary faces) of Omega.
         # We use the topological dimension of facets, i.e., dim-1.
@@ -28,24 +52,22 @@ class FEMSinkCubeFlux(FEMSinkVelo.FEMSinkVelo):
         
         # Define a local SubDomain for a cube sub-boundary.
         class CubeSubBoundary(SubDomain):
-            def __init__(self, x_min, x_max, y_min, y_max, z_min, z_max, tol=1e-6):
+            def __init__(self, lower: List[float], upper: List[float], tol=1e-6):
                 super().__init__()
-                self.x_min = x_min
-                self.x_max = x_max
-                self.y_min = y_min
-                self.y_max = y_max
-                self.z_min = z_min
-                self.z_max = z_max
+                self.lower = lower
+                self.upper = upper
                 self.tol = tol
 
             def inside(self, x, on_boundary):
-                return on_boundary and (x[0] >= self.x_min - self.tol and x[0] <= self.x_max + self.tol and
-                                         x[1] >= self.y_min - self.tol and x[1] <= self.y_max + self.tol and
-                                         x[2] >= self.z_min - self.tol and x[2] <= self.z_max + self.tol)
+                return on_boundary and (
+                    x[0] >= self.lower[0] - self.tol and x[0] <= self.upper[0] + self.tol and
+                    x[1] >= self.lower[1] - self.tol and x[1] <= self.upper[1] + self.tol and
+                    x[2] >= self.lower[2] - self.tol and x[2] <= self.upper[2] + self.tol
+                )
         
         # Instantiate the two sub-boundaries for the cubes.
-        self.lower_cube = CubeSubBoundary(*self.lower_cube_bounds)
-        self.upper_cube = CubeSubBoundary(*self.upper_cube_bounds)
+        self.lower_cube = CubeSubBoundary(self.lower_cube_bounds[0], self.lower_cube_bounds[1])
+        self.upper_cube = CubeSubBoundary(self.upper_cube_bounds[0], self.upper_cube_bounds[1])
         
         # Mark the facets that lie in each cube.
         # We use marker 1 for the lower cube and marker 2 for the upper cube.
