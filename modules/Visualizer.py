@@ -6,6 +6,24 @@ from xii import *
 from scipy.interpolate import griddata
 from matplotlib.patches import Rectangle
 
+def set_axes_equal(ax):
+    x_limits = ax.get_xlim3d()
+    y_limits = ax.get_ylim3d()
+    z_limits = ax.get_zlim3d()
+
+    x_range = abs(x_limits[1] - x_limits[0])
+    x_middle = np.mean(x_limits)
+    y_range = abs(y_limits[1] - y_limits[0])
+    y_middle = np.mean(y_limits)
+    z_range = abs(z_limits[1] - z_limits[0])
+    z_middle = np.mean(z_limits)
+
+    plot_radius = 0.75*max([x_range, y_range, z_range])
+
+    ax.set_xlim3d([x_middle - plot_radius, x_middle + plot_radius])
+    ax.set_ylim3d([y_middle - plot_radius, y_middle + plot_radius])
+    ax.set_zlim3d([z_middle - plot_radius, z_middle + plot_radius])
+
 def plot_with_boundaries(uh1d, uh3d, z_level=None, cube_lower=None, cube_upper=None):
     mesh1d = uh1d.function_space().mesh()
     coords1d = mesh1d.coordinates()
@@ -30,7 +48,7 @@ def plot_with_boundaries(uh1d, uh3d, z_level=None, cube_lower=None, cube_upper=N
     ax1.set_ylabel('Y')
     ax1.set_zlabel('Z')
     ax1.set_adjustable('box')
-    # ax1.set_aspect('equal')
+    set_axes_equal(ax1)
     
     def plot_3d_box(ax, x_min, x_max, y_min, y_max, z_min, z_max, color, label=None):
         corners = np.array([[x_min, y_min, z_min],
@@ -104,7 +122,7 @@ def plot_with_boundaries(uh1d, uh3d, z_level=None, cube_lower=None, cube_upper=N
     heatmap = ax2.imshow(zi, extent=(x_slice.min(), x_slice.max(),
                                       y_slice.min(), y_slice.max()),
                          origin='lower', cmap='viridis')
-    fig.colorbar(heatmap, ax=ax2, label='3D Pressure')
+    fig.colorbar(heatmap, ax=ax2, label='3D Pressure (Pa)')
     ax2.set_title(f'3D Pressure Heatmap at Z = {z_level:.3f}')
     ax2.set_xlabel('X')
     ax2.set_ylabel('Y')

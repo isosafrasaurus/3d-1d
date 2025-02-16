@@ -61,10 +61,10 @@ class MeasureMeshUtility(MeshUtility.MeshUtility):
         self.dxOmega = Measure("dx", domain=self.Omega)
         self.dxLambda = Measure("dx", domain=self.Lambda)
         self.dsOmega = Measure("ds", domain=self.Omega, subdomain_data=boundary_Omega)
-        self.dsOmegaNeumann = dsOmega(0)  # Non-sink boundaries (Neumann)
-        self.dsOmegaSink = dsOmega(1)     # Sink boundary (Robin)
+        self.dsOmegaNeumann = self.dsOmega(0)  # Non-sink boundaries (Neumann)
+        self.dsOmegaSink = self.dsOmega(1)     # Sink boundary (Robin)
         self.dsLambda = Measure("ds", domain=self.Lambda, subdomain_data=boundary_Lambda)
-        self.dsLambdaRobin = dsLambda(0)    # Endpoints not marked as inlet (Robin)
-        self.dsLambdaInlet = dsLambda(1)    # Endpoints marked as inlet (Dirichlet)
+        self.dsLambdaRobin = self.dsLambda(0)    # Endpoints not marked as inlet (Robin)
+        self.dsLambdaInlet = self.dsLambda(1)    # Endpoints marked as inlet (Dirichlet)
         self.boundary_Omega = boundary_Omega
         self.boundary_Lambda = boundary_Lambda
