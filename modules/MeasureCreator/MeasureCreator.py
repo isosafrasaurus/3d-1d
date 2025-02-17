@@ -4,10 +4,10 @@ from graphnics import FenicsGraph
 from xii import *
 import numpy as np
 import importlib
-import LiverMesh
 import os
 
-importlib.reload(LiverMesh)
+import MeshCreator
+importlib.reload(MeshCreator)
 
 class Face(SubDomain):
     pass
@@ -31,7 +31,7 @@ class InletEndpoint(SubDomain):
             and near(x[2], self.point[2])
         )
 
-class LiverMeshMeasure(LiverMesh.LiverMesh):
+class MeasureCreator(MeshCreator.MeshCreator):
     def __init__(
         self,
         G: FenicsGraph,
@@ -66,7 +66,7 @@ class LiverMeshMeasure(LiverMesh.LiverMesh):
         self.dsOmegaNeumann = self.dsOmega(0)  # Non-sink boundaries (Neumann)
         self.dsOmegaSink = self.dsOmega(1)     # Sink boundary (Robin)
         self.dsLambda = Measure("ds", domain=self.Lambda, subdomain_data=boundary_Lambda)
-        self.dsLambdaRobin = self.dsLambda(0)    # Endpoints not marked as inlet (Robin)
-        self.dsLambdaInlet = self.dsLambda(1)    # Endpoints marked as inlet (Dirichlet)
+        self.dsLambdaRobin = self.dsLambda(0)  # Endpoints not marked as inlet (Robin)
+        self.dsLambdaInlet = self.dsLambda(1)  # Endpoints marked as inlet (Dirichlet)
         self.boundary_Omega = boundary_Omega
         self.boundary_Lambda = boundary_Lambda
