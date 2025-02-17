@@ -13,7 +13,7 @@ class MeshCreator:
         Omega_mesh_voxel_dim: List[int] = [16, 16, 16],
         Lambda_padding_min: float = 0.008,
         Lambda_num_nodes_exp: int = 5,
-    ):
+    ):        
         # Build and extract Lambda
         G.make_mesh(n=Lambda_num_nodes_exp)
         G.make_submeshes()
@@ -47,13 +47,14 @@ class MeshCreator:
             Lambda_coords[:] += shift_correction
             self.__shift_graph_nodes(self.G_ref, shift_correction)
             shifts = np.zeros(3)
+            self.Omega_bounds = [shifts, shifts + scales]
         else:
             lower, upper = np.array(Omega_bounds_dim[0]), np.array(Omega_bounds_dim[1])
             scales = upper - lower
             shifts = lower
+            self.Omega_bounds = [Omega_bounds_dim[0], Omega_bounds_dim[1]]
 
         Omega_coords[:] = Omega_coords * scales + shifts
-        self.Omega_bounds = [shifts, shifts + scales]
         self.radius_map = self.radius_map(self.G_ref, edge_marker)
 
     @staticmethod
