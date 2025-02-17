@@ -1,23 +1,17 @@
 # Instructions
-### Via Docker w/ Bind Mount
-1. Clone this repository to a local address `<d>`
-2. Pull `isosafrasaurus/jupyter_fem_base` (Docker Hub) or `ghcr.io/isosafrasaurus/3d-1d:0`
-3. Execute `docker run -p 127.0.0.1:8888:8888 --mount type=bind,src=<d>,dst=/home/jovyan/work`
+### Via Docker
+1. `docker pull` the most recent 3d-1d package
+2. `docker run` the image with `-p 127.0.0.1:8888:8888` to expose the Jupyter port, and optionally mount a local directory on your host machine to `/root/3d-1d/export` to receive ParaView files
 
-It is also possible to use this repository without a bind mount. Simply docker pull the latest release, although you will not be able to synchronously access perfusion results from host processes such as ParaView.
-
-While it is not recommended due to being cumbersome, it is possible to run this repository on Google Colab in case of hardware limitations. To do this,
-1. Download and copy repo contents to Google Drive at address `<d>`
-2. Add libraries to Python PATH by running
+### Via Google Colab
+While I don'tsuggest it due to being cumbersome, it is possible to run this repository on Google Colab. To do this,
+1. Download and copy repo contents to Google Drive at address `d`
+2. Run a cell consisting of
 ```
-import os, sys
+import os, sys, re
 sys.path.append(os.path.join(<d>, 'modules'))
-```
-3. Install packages via
-```
-!pip install ipywidgets vtk meshio pyvista Rtree
 
-import os, re
+!pip install ipywidgets vtk meshio pyvista Rtree
 
 def replace_in_file(file_path):
     with open(file_path, 'r', encoding='utf-8') as file:
