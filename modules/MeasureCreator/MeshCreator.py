@@ -55,15 +55,9 @@ class MeshCreator:
             self.Omega_bounds = [Omega_bounds_dim[0], Omega_bounds_dim[1]]
 
         Omega_coords[:] = Omega_coords * scales + shifts
-        self.radius_map = self.radius_map(self.G_ref, edge_marker)
+        self.radius_map = self.RadiusFunction(self.G_ref, edge_marker)
 
-    @staticmethod
-    def __shift_graph_nodes(G, shift: np.ndarray):
-        for n in G.nodes:
-            pos = np.array(G.nodes[n]['pos'])
-            G.nodes[n]['pos'] = (pos + shift).tolist()
-
-    class radius_map(UserExpression):
+    class RadiusFunction(UserExpression):
         def __init__(self, G: FenicsGraph, edge_marker: MeshFunction, **kwargs):
             super().__init__(**kwargs)
             self.G = G
@@ -117,3 +111,9 @@ class MeshCreator:
             t = np.clip(t, 0.0, 1.0)
             projection = u + t * line
             return np.linalg.norm(p - projection) <= radius
+            
+    @staticmethod
+    def __shift_graph_nodes(G, shift: np.ndarray):
+        for n in G.nodes:
+            pos = np.array(G.nodes[n]['pos'])
+            G.nodes[n]['pos'] = (pos + shift).tolist()
