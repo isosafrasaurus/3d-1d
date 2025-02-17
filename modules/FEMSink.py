@@ -5,11 +5,11 @@ from typing import Optional, List, Any
 import numpy as np
 import VTKExporter
 import importlib
-import RadiusFunction
-import MeasureMeshUtility
 import os
+import MeasureMeshUtility
+importlib.reload(MeasureMeshUtility)
 
-class FEMSink:
+class FEMSink(MeasureMeshUtility.MeasureMeshUtility):
     def __init__(
         self,
         G: "FenicsGraph",
@@ -25,7 +25,7 @@ class FEMSink:
         Lambda_inlet: List[int],
         Omega_sink: SubDomain = None,
         **kwargs
-    ):
+    ):        
         self.gamma = gamma
         self.gamma_a = gamma_a
         self.gamma_R = gamma_R
@@ -36,17 +36,7 @@ class FEMSink:
         self.P_in = P_in
         self.p_cvp = p_cvp
 
-        mmu = MeasureMeshUtility.MeasureMeshUtility(G, Lambda_inlet, Omega_sink)
-        self.Omega = mmu.Omega
-        self.Lambda = mmu.Lambda
-        self.dsOmegaSink = mmu.dsOmegaSink
-        self.dsOmegaNeumann = mmu.dsOmegaNeumann
-        self.dsLambdaInlet = mmu.dsLambdaInlet
-        self.dsLambdaRobin = mmu.dsLambdaRobin
-        self.dxOmega = mmu.dxOmega
-        self.dxLambda = mmu.dxLambda
-        self.boundary_Omega = mmu.boundary_Omega
-        self.boundary_Lambda = mmu.boundary_Lambda
+        super().__init__(G, Lambda_inlet, Omega_sink)
 
         V3 = FunctionSpace(self.Omega, "CG", 1)
         V1 = FunctionSpace(self.Lambda, "CG", 1)
@@ -54,7 +44,6 @@ class FEMSink:
         u3, u1 = map(TrialFunction, W)
         v3, v1 = map(TestFunction, W)
 
-        self.radius_map = RadiusFunction.RadiusFunction(G, mmu.Lambda_edge_marker, degree=5)
         cylinder = Circle(radius=self.radius_map, degree=5)
 
         u3_avg = Average(u3, self.Lambda, cylinder)
@@ -68,32 +57,40 @@ class FEMSink:
             + Constant(self.gamma_R) * u3 * v3 * self.dsOmegaSink
             + Constant(self.gamma) * u3_avg * v3_avg * D_perimeter * self.dxLambda
         )
+        
         a01 = (
-            -Constant(self.gamma) * u1 * v3_avg * D_perimeter * self.dxLambda
+            - Constant(self.gamma) * u1 * v3_avg * D_perimeter * self.dxLambda
+            - Constant(self.gamma_a / self.mu) * u1 * v3_avg * D_area * self.dsLambdaRobin
         )
+        
         a10 = (
-            -Constant(self.gamma) * u3_avg * v1 * D_perimeter * self.dxLambda
+            - Constant(self.gamma) * u3_avg * v1 * D_perimeter * self.dxLambda
         )
+        
         a11 = (
             Constant(self.k_v / self.mu) * inner(grad(u1), grad(v1)) * D_area * self.dxLambda
             + Constant(self.gamma) * u1 * v1 * D_perimeter * self.dxLambda
             + Constant(self.gamma_a / self.mu) * u1 * v1 * self.dsLambdaRobin
         )
+        
         L0 = (
-            -Constant(self.gamma_R) * Constant(self.p_cvp) * v3 * self.dsOmegaSink
+            Constant(self.gamma_R) * Constant(self.p_cvp) * v3 * self.dsOmegaSink
+            + Constant(self.gamma_a / self.mu) * Constant(self.p_cvp) * v3_avg * D_area * self.dsLambdaRobin
         )
+        
         L1 = (
-            +Constant(self.gamma_a / self.mu) * Constant(self.p_cvp) * v1 * self.dsLambdaRobin
+            Constant(self.gamma_a / self.mu) * Constant(self.p_cvp) * v1 * self.dsLambdaRobin
         )
+        
         a = [[a00, a01],
              [a10, a11]]
         L = [L0, L1]
-
+        
         inlet_bc = DirichletBC(V1, Constant(self.P_in), self.boundary_Lambda, 1)
         inlet_bcs = [inlet_bc] if len(inlet_bc.get_boundary_values()) > 0 else []
         W_bcs = [[], inlet_bcs]
         self.W_bcs = W_bcs
-
+        
         A, b = map(ii_assemble, (a, L))
         if any(W_bcs[0]) or any(W_bcs[1]):
             print("Applied BC! Non-empty list")

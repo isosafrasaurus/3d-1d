@@ -26,13 +26,11 @@ class FEMSinkCubeFlux(FEMSinkVelo.FEMSinkVelo):
     ):
         super().__init__(G, gamma, gamma_a, gamma_R, gamma_v, mu, k_t, k_v, P_in, p_cvp, Lambda_inlet, Omega_sink, **kwargs)
         
-        # Get the domain coordinates.
         coords = self.Omega.coordinates()
         x_min, x_max = np.min(coords[:, 0]), np.max(coords[:, 0])
         y_min, y_max = np.min(coords[:, 1]), np.max(coords[:, 1])
         z_min, z_max = np.min(coords[:, 2]), np.max(coords[:, 2])
         
-        # Choose a cube side length: here, 50% of the smallest domain dimension
         eps = 0.5 * min(x_max - x_min, y_max - y_min, z_max - z_min)
         
         # Use provided bounds if available, otherwise auto-generate them.
@@ -78,36 +76,18 @@ class FEMSinkCubeFlux(FEMSinkVelo.FEMSinkVelo):
         self.ds_cube = Measure("ds", domain=self.Omega, subdomain_data=self.cube_boundaries)
     
     def compute_lower_cube_flux(self):
-        """
-        Computes the flux through the lower cube sub-boundary.
-        
-        Returns:
-            flux_lower (float): The integrated flux over the lower cube.
-        """
         n = FacetNormal(self.Omega)
-        flux_lower = assemble(dot(self.velocity, n) * self.ds_cube(1))
+        flux_lower = assemble(abs(dot(self.velocity, n)) * self.ds_cube(1))
         return flux_lower
 
     def compute_upper_cube_flux(self):
-        """
-        Computes the flux through the upper cube sub-boundary.
-        
-        Returns:
-            flux_upper (float): The integrated flux over the upper cube.
-        """
         n = FacetNormal(self.Omega)
-        flux_upper = assemble(dot(self.velocity, n) * self.ds_cube(2))
+        flux_upper = assemble(abs(dot(self.velocity, n)) * self.ds_cube(2))
         return flux_upper
 
     def save_vtk(self, directory_path: str):
-        """
-        Saves the 3D and 1D pressure fields, the velocity field, and also the cube
-        boundary markers to the specified directory for post-processing.
-        """
         import os
         os.makedirs(directory_path, exist_ok=True)
-        # Save the pressure and velocity fields using the parent's method.
         super().save_vtk(directory_path)
-        # Save the cube boundaries (for example, as an XDMF file) so that you can visualize them.
         xdmf_file = XDMFFile(os.path.join(directory_path, "cube_boundaries.xdmf"))
         xdmf_file.write(self.cube_boundaries)

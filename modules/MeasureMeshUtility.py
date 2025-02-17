@@ -36,9 +36,9 @@ class MeasureMeshUtility(MeshUtility.MeshUtility):
         Lambda_inlet: List[int],
         Omega_sink: SubDomain,
         **kwargs
-    ):        
-        super_kwargs = {k: v for k, v in kwargs.items() if v is not None}
-        super().__init__(G, **super_kwargs)
+    ):
+        importlib.reload(MeshUtility)
+        super().__init__(G, **kwargs)
 
         if Omega_sink == None:
             Omega_sink = XAxisPlane(self.Omega_bounds[0][0])
