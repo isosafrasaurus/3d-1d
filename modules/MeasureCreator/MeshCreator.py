@@ -1,5 +1,6 @@
-from typing import Optional, List
 import numpy as np
+
+from typing import Optional, List
 from dolfin import UnitCubeMesh, MeshFunction, UserExpression
 from graphnics import FenicsGraph
 from rtree import index as rtree_index

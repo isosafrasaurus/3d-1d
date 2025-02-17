@@ -1,16 +1,16 @@
 import numpy as np
 import math
-from dolfin import *
 import FEMSinkVelo
 import importlib
-from typing import List, Optional
 
-importlib.reload(FEMSinkVelo)
+from dolfin import *
+from typing import List, Optional
+from MeasureCreator import MeasureCreator
 
 class FEMSinkCubeFlux(FEMSinkVelo.FEMSinkVelo):
     def __init__(
         self,
-        G: "FenicsGraph",
+        mc: MeasureCreator,
         gamma: float,
         gamma_a: float,
         gamma_R: float,
@@ -20,13 +20,13 @@ class FEMSinkCubeFlux(FEMSinkVelo.FEMSinkVelo):
         k_v: float,
         P_in: float,
         p_cvp: float,
-        Lambda_in: List[int],
-        Omega_sink: SubDomain = None,
+        Lambda_inlet: List[int],
+        Omega_sink: SubDomain,
         lower_cube_bounds: Optional[List[List[float]]] = None,
         upper_cube_bounds: Optional[List[List[float]]] = None,
         **kwargs
     ):
-        super().__init__(G, gamma, gamma_a, gamma_R, gamma_v, mu, k_t, k_v, P_in, p_cvp, Lambda_in, Omega_sink, **kwargs)
+        super().__init__(mc, gamma, gamma_a, gamma_R, gamma_v, mu, k_t, k_v, P_in, p_cvp, Lambda_inlet, Omega_sink, **kwargs)
         
         coords = self.Omega.coordinates()
         x_min, x_max = np.min(coords[:, 0]), np.max(coords[:, 0])

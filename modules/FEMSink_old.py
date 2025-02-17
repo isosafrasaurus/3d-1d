@@ -1,18 +1,16 @@
+from dolfin import *
+from graphnics import *
+from xii import *
+from typing import Optional, List, Any
 import numpy as np
 import VTKExporter
 import importlib
 import os
 
-from dolfin import *
-from graphnics import *
-from xii import *
-from typing import Optional, List, Any
-from MeasureCreator import MeasureCreator
-
-class FEMSink():
+class FEMSink(LiverMeshMeasure.LiverMeshMeasure):
     def __init__(
         self,
-        mc: MeasureCreator,
+        G: "FenicsGraph",
         gamma: float,
         gamma_a: float,
         gamma_R: float,
@@ -23,9 +21,10 @@ class FEMSink():
         P_in: float,
         p_cvp: float,
         Lambda_inlet: List[int],
-        Omega_sink: SubDomain,
+        Omega_sink: SubDomain = None,
         **kwargs
-    ):
+    ):        
+        super().__init__(G, Lambda_inlet, Omega_sink, **kwargs)
         self.gamma = gamma
         self.gamma_a = gamma_a
         self.gamma_R = gamma_R
@@ -35,17 +34,6 @@ class FEMSink():
         self.k_v = k_v
         self.P_in = P_in
         self.p_cvp = p_cvp
-
-        self.Omega = mc.Omega
-        self.Lambda = mc.Lambda
-        self.dxOmega = mc.dxOmega
-        self.dxLambda = mc.dxLambda
-        self.dsOmegaNeumann = mc.dsOmegaNeumann
-        self.dsOmegaSink = mc.dsOmegaSink
-        self.dsLambdaRobin = mc.dsLambdaRobin
-        self.dsLambdaInlet = mc.dsLambdaInlet
-        self.boundary_Lambda = mc.boundary_Lambda
-        self.radius_map = mc.radius_map
         
         V3 = FunctionSpace(self.Omega, "CG", 1)
         V1 = FunctionSpace(self.Lambda, "CG", 1)

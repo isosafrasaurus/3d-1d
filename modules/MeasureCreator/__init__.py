@@ -1,1 +1,2 @@
-from .MeasureCreator import MeshCreator, MeasureCreator
+from .MeshCreator import MeshCreator
+from .MeasureCreator import MeasureCreator
