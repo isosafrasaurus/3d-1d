@@ -6,10 +6,11 @@ import numpy as np
 import VTKExporter
 import importlib
 import os
-import MeasureMeshUtility
-importlib.reload(MeasureMeshUtility)
+import LiverMeshMeasure
 
-class FEMSink(MeasureMeshUtility.MeasureMeshUtility):
+importlib.reload(LiverMeshMeasure)
+
+class FEMSink(LiverMeshMeasure.LiverMeshMeasure):
     def __init__(
         self,
         G: "FenicsGraph",
@@ -26,6 +27,7 @@ class FEMSink(MeasureMeshUtility.MeasureMeshUtility):
         Omega_sink: SubDomain = None,
         **kwargs
     ):        
+        super().__init__(G, Lambda_inlet, Omega_sink, **kwargs)
         self.gamma = gamma
         self.gamma_a = gamma_a
         self.gamma_R = gamma_R
@@ -35,9 +37,7 @@ class FEMSink(MeasureMeshUtility.MeasureMeshUtility):
         self.k_v = k_v
         self.P_in = P_in
         self.p_cvp = p_cvp
-
-        super().__init__(G, Lambda_inlet, Omega_sink)
-
+        
         V3 = FunctionSpace(self.Omega, "CG", 1)
         V1 = FunctionSpace(self.Lambda, "CG", 1)
         W = [V3, V1]
@@ -45,13 +45,13 @@ class FEMSink(MeasureMeshUtility.MeasureMeshUtility):
         v3, v1 = map(TestFunction, W)
 
         cylinder = Circle(radius=self.radius_map, degree=5)
-
+        
         u3_avg = Average(u3, self.Lambda, cylinder)
         v3_avg = Average(v3, self.Lambda, cylinder)
-
+        
         D_area = np.pi * self.radius_map**2
         D_perimeter = 2.0 * np.pi * self.radius_map
-
+        
         a00 = (
             Constant(self.k_t / self.mu) * inner(grad(u3), grad(v3)) * self.dxOmega
             + Constant(self.gamma_R) * u3 * v3 * self.dsOmegaSink

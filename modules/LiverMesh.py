@@ -5,8 +5,9 @@ from xii import *
 import networkx as nx
 import numpy as np
 from rtree import index as rtree_index
+import copy  # for copying the graph
 
-class MeshUtility:
+class LiverMesh:    
     def __init__(
         self,
         G: FenicsGraph,
@@ -19,14 +20,35 @@ class MeshUtility:
         G.make_mesh(n=Lambda_num_nodes_exp)
         G.make_submeshes()
         Lambda, Lambda_edge_marker = G.get_mesh(n=Lambda_num_nodes_exp)
-
         Lambda_coords = Lambda.coordinates()
 
-        # Create the background Omega mesh and transform it according to Lambda's extents.
+        G_copy = G
+
+        min_coords = np.min(Lambda_coords, axis=0)
+        translation = -min_coords  # This makes the minimum coordinate 0.
+        Lambda_coords[:] = Lambda_coords + translation
+
+        for n in G_copy.nodes:
+            pos = np.array(G_copy.nodes[n]['pos'])
+            G_copy.nodes[n]['pos'] = (pos + translation).tolist()
+
+        if Omega_bounds_dim is not None:
+            lower = np.array(Omega_bounds_dim[0])
+            upper = np.array(Omega_bounds_dim[1])
+            omega_center = (lower + upper) / 2.0
+            lambda_center = np.mean(Lambda_coords, axis=0)
+            center_shift = omega_center - lambda_center
+            Lambda_coords[:] = Lambda_coords + center_shift
+
+            for n in G_copy.nodes:
+                pos = np.array(G_copy.nodes[n]['pos'])
+                G_copy.nodes[n]['pos'] = (pos + center_shift).tolist()
+
         Omega = UnitCubeMesh(*Omega_mesh_voxel_dim)
         Omega_coords = Omega.coordinates()
 
         if Omega_bounds_dim is None:
+            # Compute extents from Lambda (which is already positive).
             xmin, ymin, zmin = np.min(Lambda_coords, axis=0)
             xmax, ymax, zmax = np.max(Lambda_coords, axis=0)
             scales = np.array([
@@ -34,11 +56,19 @@ class MeshUtility:
                 ymax - ymin + 2 * Lambda_padding_min,
                 zmax - zmin + 2 * Lambda_padding_min
             ])
-            shifts = np.array([
-                xmin - Lambda_padding_min,
-                ymin - Lambda_padding_min,
-                zmin - Lambda_padding_min
-            ])
+            # Originally one might have set:
+            # shifts = np.array([xmin - Lambda_padding_min, ymin - Lambda_padding_min, zmin - Lambda_padding_min])
+            # Instead, we wish Omega to be flush with the axes (i.e. lower bound = (0,0,0)).
+            shifts = np.array([0.0, 0.0, 0.0])
+            # To preserve the relative positioning, shift Lambda (and the graph copy)
+            # so that its lower bound equals Lambda_padding_min.
+            shift_correction = np.array([Lambda_padding_min - xmin,
+                                         Lambda_padding_min - ymin,
+                                         Lambda_padding_min - zmin])
+            Lambda_coords[:] = Lambda_coords + shift_correction
+            for n in G_copy.nodes:
+                pos = np.array(G_copy.nodes[n]['pos'])
+                G_copy.nodes[n]['pos'] = (pos + shift_correction).tolist()
         else:
             lower = np.array(Omega_bounds_dim[0])
             upper = np.array(Omega_bounds_dim[1])
@@ -46,12 +76,15 @@ class MeshUtility:
             shifts = lower
 
         Omega_coords[:, :] = Omega_coords * scales + shifts
-
         self.Omega_bounds = [shifts, shifts + scales]
         self.Omega = Omega
         self.Lambda = Lambda
         self.Lambda_edge_marker = Lambda_edge_marker
-        self.radius_map = self.radius_map(G, Lambda_edge_marker)
+
+        # ---------------------------
+        # Step 5: Create the radius_map using the modified (copied) graph.
+        # ---------------------------
+        self.radius_map = self.radius_map(G_copy, Lambda_edge_marker)
 
     class radius_map(UserExpression):
         def __init__(self, G: "FenicsGraph", edge_marker: MeshFunction, **kwargs):

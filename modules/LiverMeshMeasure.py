@@ -4,8 +4,10 @@ from graphnics import FenicsGraph
 from xii import *
 import numpy as np
 import importlib
-import MeshUtility
+import LiverMesh
 import os
+
+importlib.reload(LiverMesh)
 
 class Face(SubDomain):
     pass
@@ -29,7 +31,7 @@ class InletEndpoint(SubDomain):
             and near(x[2], self.point[2])
         )
 
-class MeasureMeshUtility(MeshUtility.MeshUtility):
+class LiverMeshMeasure(LiverMesh.LiverMesh):
     def __init__(
         self,
         G: FenicsGraph,
@@ -37,8 +39,8 @@ class MeasureMeshUtility(MeshUtility.MeshUtility):
         Omega_sink: SubDomain,
         **kwargs
     ):
-        importlib.reload(MeshUtility)
-        super().__init__(G, **kwargs)
+        filtered_kwargs = {k: v for k, v in kwargs.items() if v is not None}
+        super().__init__(G, **filtered_kwargs)
 
         if Omega_sink == None:
             Omega_sink = XAxisPlane(self.Omega_bounds[0][0])
