@@ -114,8 +114,8 @@ class FEMSink():
         solver.solve(wh.vector(), b)
 
         self.uh3d, self.uh1d = wh
-        self.uh3d.rename("3D Pressure", "3D Pressure Distribution")
-        self.uh1d.rename("1D Pressure", "1D Pressure Distribution")
+        self.uh3d.rename("3D Pressure (Pa)", "3D Pressure Distribution")
+        self.uh1d.rename("1D Pressure (Pa)", "1D Pressure Distribution")
 
     def save_vtk(self, directory_path: str):
         os.makedirs(directory_path, exist_ok=True)

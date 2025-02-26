@@ -37,7 +37,7 @@ class FEMSinkVelo(FEMSink.FEMSink):
         return assemble(dot(self.velocity, n)*self.dsOmegaSink)
 
     def compute_inflow_inlet(self):
-        inlet_bc = self._retrieve_inlet_bc()
+        inlet_bc = self.__retrieve_inlet_bc()
         bc_dofs = list(inlet_bc.get_boundary_values().keys())
         if len(bc_dofs) == 0:
             raise RuntimeError("No inlet DOFs found! Check your boundary condition setup.")
@@ -74,13 +74,12 @@ class FEMSinkVelo(FEMSink.FEMSink):
     def save_vtk(self, directory_path: str):
         import os
         os.makedirs(directory_path, exist_ok=True)
-
         super().save_vtk(directory_path)
-
+        self.velocity.rename("3D Velocity (Pa)", "3D Velocity Distribution")
         velocity_file = File(os.path.join(directory_path, "velocity3d.pvd"))
         velocity_file << self.velocity
 
-    def _retrieve_inlet_bc(self):
+    def __retrieve_inlet_bc(self):
         if hasattr(self, 'W_bcs'):
             bc_list = self.W_bcs[1]
             if bc_list:
