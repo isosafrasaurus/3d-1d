@@ -5,7 +5,7 @@ import importlib
 
 from dolfin import *
 from typing import List, Optional
-from MeasureCreator import MeasureCreator
+from MeasureBuild import MeasureBuild
 
 class FEMSinkCubeFlux(FEMSinkVelo.FEMSinkVelo):
     def __init__(
@@ -50,8 +50,8 @@ class FEMSinkCubeFlux(FEMSinkVelo.FEMSinkVelo):
 
             def inside(self, x, on_boundary):
                 return on_boundary and (
-                    x[0] >= self.lower[0] - self.tol and x[0] <= self.upper[0] + self.tol or
-                    x[1] >= self.lower[1] - self.tol and x[1] <= self.upper[1] + self.tol or
+                    x[0] >= self.lower[0] - self.tol and x[0] <= self.upper[0] + self.tol and
+                    x[1] >= self.lower[1] - self.tol and x[1] <= self.upper[1] + self.tol and
                     x[2] >= self.lower[2] - self.tol and x[2] <= self.upper[2] + self.tol
                 )
         
