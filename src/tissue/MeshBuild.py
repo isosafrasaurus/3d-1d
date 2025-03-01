@@ -40,19 +40,22 @@ class MeshBuild:
         G.make_mesh(n = Lambda_num_nodes_exp); G.make_submeshes()
         self.Lambda, _ = G.get_mesh(n = Lambda_num_nodes_exp)
         Lambda_coords = self.Lambda.coordinates()
+        lambda_min = np.min(Lambda_coords, axis=0)
+        lambda_max = np.max(Lambda_coords, axis=0)
         
         self.Omega = UnitCubeMesh(*Omega_mesh_voxel_dim)
         Omega_coords = self.Omega.coordinates()
 
         if Omega_bounds is None:
-            lower = np.min(Lambda_coords, axis=0)
-            upper = np.max(Lambda_coords, axis=0)
-            scales = upper - lower + 2 * Lambda_padding
-            shifts = lower - Lambda_padding
+            scales = lambda_max - lambda_min + 2 * Lambda_padding
+            shifts = lambda_min - Lambda_padding
             self.Omega_bounds = np.array([shifts.tolist(), (shifts + scales).tolist()])
         else:
             lower = np.minimum(Omega_bounds[0], Omega_bounds[1])
             upper = np.maximum(Omega_bounds[0], Omega_bounds[1])
+            assert np.all(lambda_min >= lower) and np.all(lambda_max <= upper), (
+                "Lambda mesh is not contained within Omega_bounds."
+            )
             scales = upper - lower
             shifts = lower
             self.Omega_bounds = np.concatenate((lower, upper), axis=0)
