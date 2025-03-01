@@ -4,12 +4,14 @@
 2. `docker run` the image with `-p 127.0.0.1:8888:8888` to expose the Jupyter port, and optionally mount a local directory on your host machine to `/root/3d-1d/export` to receive ParaView files
 
 ### Via Google Colab
-While I don'tsuggest it due to being cumbersome, it is possible to run this repository on Google Colab. To do this,
+KSPSolve can sometimes run out of memory. If your computer has RAM limitations, follow these instructions to run the demo notebook on Google Colab instead.
 1. Download and copy repo contents to Google Drive at address `d`
 2. Run a cell consisting of
 ```
-import os, sys, re
-sys.path.append(os.path.join(<d>, 'modules'))
+import sys, os
+WORK_PATH = "/content/drive/MyDrive/<d>"
+SOURCE_PATH = os.path.join(WORK_PATH, "src")
+sys.path.append(SOURCE_PATH)
 
 !pip install ipywidgets vtk meshio pyvista Rtree
 
@@ -34,7 +36,7 @@ def process_directory(directory):
 try:
     import dolfin
 except ImportError:
-    !wget "https://fem-on-colab.github.io/releases/fenics-install-real.sh" -O "/tmp/fenics-install.sh" && bash "/tmp/fenics-install.sh"
+    !wget "https://fem-on-colab.github.io/releases/fenics-install-release-real.sh" -O "/tmp/fenics-install.sh" && bash "/tmp/fenics-install.sh"
 
 # block
 try:
