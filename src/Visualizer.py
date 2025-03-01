@@ -19,7 +19,6 @@ def set_axes_equal(ax: Any) -> None:
     ax.set_ylim3d([y_middle - plot_radius, y_middle + plot_radius])
     ax.set_zlim3d([z_middle - plot_radius, z_middle + plot_radius])
 
-
 def get_box_edges(corners: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     edges = [(0, 1), (1, 2), (2, 3), (3, 0),
              (4, 5), (5, 6), (6, 7), (7, 4),
@@ -30,7 +29,6 @@ def get_box_edges(corners: np.ndarray) -> Tuple[np.ndarray, np.ndarray, np.ndarr
         y_line.extend([corners[i, 1], corners[j, 1], None])
         z_line.extend([corners[i, 2], corners[j, 2], None])
     return np.array(x_line), np.array(y_line), np.array(z_line)
-
 
 def plot_3d_box(ax: Any, box: Tuple[np.ndarray, np.ndarray], color: str, label: Optional[str] = None) -> None:
     lower, upper = box
@@ -58,12 +56,10 @@ def plot_3d_box(ax: Any, box: Tuple[np.ndarray, np.ndarray], color: str, label: 
                 [corners[i, 2], corners[j, 2]],
                 **kwargs)
 
-
 def compute_boundaries(coords: np.ndarray) -> Tuple[float, float, float, float, float, float]:
     return (coords[:, 0].min(), coords[:, 0].max(),
             coords[:, 1].min(), coords[:, 1].max(),
             coords[:, 2].min(), coords[:, 2].max())
-
 
 def plot_with_boundaries(uh1d: Any, uh3d: Any,
                          z_level: Optional[float] = None,

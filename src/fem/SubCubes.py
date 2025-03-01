@@ -2,8 +2,8 @@ from . import Velo
 
 import numpy as np
 import tissue
-from typing import List
 from dolfin import *
+from typing import List
 
 class SubCubes(Velo):
     def __init__(

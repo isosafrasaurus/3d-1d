@@ -1,6 +1,6 @@
 import numpy as np
-import VTKExporter
 import tissue
+import VTKExporter
 from dolfin import *
 from graphnics import *
 from xii import *
@@ -19,26 +19,20 @@ class Sink:
         P_in: float,
         p_cvp: float
     ):
-        self.gamma = gamma
-        self.gamma_a = gamma_a
-        self.gamma_R = gamma_R
-        self.gamma_v = gamma_v
-        self.mu = mu
-        self.k_t = k_t
-        self.k_v = k_v
-        self.P_in = P_in
-        self.p_cvp = p_cvp
+        for name, value in zip(
+            ["gamma", "gamma_a", "gamma_R", "gamma_v", "mu", "k_t", "k_v", "P_in", "p_cvp"],
+            [gamma, gamma_a, gamma_R, gamma_v, mu, k_t, k_v, P_in, p_cvp]
+        ):
+            setattr(self, name, value)
 
-        self.Omega = domain.mesh.Omega
-        self.Lambda = domain.mesh.Lambda
-        self.radius_map = domain.mesh.radius_map
-        self.dxOmega = domain.dxOmega
-        self.dxLambda = domain.dxLambda
-        self.dsOmegaNeumann = domain.dsOmegaNeumann
-        self.dsOmegaSink = domain.dsOmegaSink
-        self.dsLambdaRobin = domain.dsLambdaRobin
-        self.dsLambdaInlet = domain.dsLambdaInlet
-        self.boundary_Lambda = domain.boundary_Lambda
+        for attr in ["Omega", "Lambda", "radius_map"]:
+            setattr(self, attr, getattr(domain.mesh, attr))
+        
+        for attr in [
+            "dxOmega", "dxLambda", "dsOmegaNeumann", "dsOmegaSink",
+            "dsLambdaRobin", "dsLambdaInlet", "boundary_Lambda"
+        ]:
+            setattr(self, attr, getattr(domain, attr))
         
         V3 = FunctionSpace(self.Omega, "CG", 1)
         V1 = FunctionSpace(self.Lambda, "CG", 1)
@@ -51,46 +45,36 @@ class Sink:
         v3_avg = Average(v3, self.Lambda, cylinder)
         D_area = np.pi * self.radius_map**2
         D_perimeter = 2.0 * np.pi * self.radius_map
-        
+
         a00 = (
             Constant(self.k_t / self.mu) * inner(grad(u3), grad(v3)) * self.dxOmega
             + Constant(self.gamma_R) * u3 * v3 * self.dsOmegaSink
             + Constant(self.gamma) * u3_avg * v3_avg * D_perimeter * self.dxLambda
         )
-        
         a01 = (
             - Constant(self.gamma) * u1 * v3_avg * D_perimeter * self.dxLambda
             - Constant(self.gamma_a / self.mu) * u1 * v3_avg * D_area * self.dsLambdaRobin
         )
-        
-        a10 = (
-            - Constant(self.gamma) * u3_avg * v1 * D_perimeter * self.dxLambda
-        )
-        
+        a10 = - Constant(self.gamma) * u3_avg * v1 * D_perimeter * self.dxLambda
         a11 = (
             Constant(self.k_v / self.mu) * inner(grad(u1), grad(v1)) * D_area * self.dxLambda
             + Constant(self.gamma) * u1 * v1 * D_perimeter * self.dxLambda
             + Constant(self.gamma_a / self.mu) * u1 * v1 * self.dsLambdaRobin
         )
-        
         L0 = (
             Constant(self.gamma_R) * Constant(self.p_cvp) * v3 * self.dsOmegaSink
             + Constant(self.gamma_a / self.mu) * Constant(self.p_cvp) * v3_avg * D_area * self.dsLambdaRobin
         )
-        
-        L1 = (
-            Constant(self.gamma_a / self.mu) * Constant(self.p_cvp) * v1 * self.dsLambdaRobin
-        )
-        
-        a = [[a00, a01],
-             [a10, a11]]
+        L1 = Constant(self.gamma_a / self.mu) * Constant(self.p_cvp) * v1 * self.dsLambdaRobin
+
+        a = [[a00, a01], [a10, a11]]
         L = [L0, L1]
-        
+
         inlet_bc = DirichletBC(V1, Constant(self.P_in), self.boundary_Lambda, 1)
-        inlet_bcs = [inlet_bc] if len(inlet_bc.get_boundary_values()) > 0 else []
+        inlet_bcs = [inlet_bc] if inlet_bc.get_boundary_values() else []
         W_bcs = [[], inlet_bcs]
         self.W_bcs = W_bcs
-        
+
         A, b = map(ii_assemble, (a, L))
         if any(W_bcs[0]) or any(W_bcs[1]):
             print("Applied BC! Non-empty list")
@@ -109,14 +93,10 @@ class Sink:
 
     def save_vtk(self, directory_path: str):
         os.makedirs(directory_path, exist_ok=True)
-
-        out_1d = directory_path + "/pressure1d.vtk"
-        out_3d = directory_path + "/pressure3d.pvd"
-
         VTKExporter.fenics_to_vtk(
             self.Lambda,
-            out_1d,
+            f"{directory_path}/pressure1d.vtk",
             self.radius_map,
             uh1d=self.uh1d
         )
-        File(out_3d) << self.uh3d
+        File(f"{directory_path}/pressure3d.pvd") << self.uh3d

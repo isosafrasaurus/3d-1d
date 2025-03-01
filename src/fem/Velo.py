@@ -1,10 +1,8 @@
 from . import Sink
 
 import numpy as np
-import math
 import tissue
 from dolfin import *
-from typing import Optional, List, Any
 
 class Velo(Sink):
     def __init__(
@@ -63,7 +61,7 @@ class Velo(Sink):
 
         midpoint = 0.5*(x_inlet + x_next)
         radius_mid = self.radius_map(Point(*midpoint))
-        area_mid = math.pi*(radius_mid**2)
+        area_mid = np.pi*(radius_mid**2)
         flux = (self.k_v/self.mu)*area_mid*(dp/length_segment)
         return flux
 
