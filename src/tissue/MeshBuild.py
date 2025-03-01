@@ -1,9 +1,7 @@
 import numpy as np
-import warnings
 from typing import Optional, Tuple
 from dolfin import UnitCubeMesh, MeshFunction, UserExpression, SubDomain, BoundingBoxTree
 from graphnics import FenicsGraph
-from rtree import index as rtree_index
 
 class AxisPlane(SubDomain):
     def __init__(self, axis, coordinate: float):
@@ -47,10 +45,10 @@ class MeshBuild:
         Omega_coords = self.Omega.coordinates()
 
         if Omega_bounds is None:
-            min_lambda = np.min(Lambda_coords, axis=0)
-            max_lambda = np.max(Lambda_coords, axis=0)
-            scales = max_lambda - min_lambda + 2 * Lambda_padding
-            shifts = min_lambda - Lambda_padding
+            lower = np.min(Lambda_coords, axis=0)
+            upper = np.max(Lambda_coords, axis=0)
+            scales = upper - lower + 2 * Lambda_padding
+            shifts = lower - Lambda_padding
             self.Omega_bounds = np.array([shifts.tolist(), (shifts + scales).tolist()])
         else:
             lower = np.minimum(Omega_bounds[0], Omega_bounds[1])

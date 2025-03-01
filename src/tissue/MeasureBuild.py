@@ -6,17 +6,17 @@ from graphnics import FenicsGraph
 from .MeshBuild import MeshBuild
 from typing import Optional, List
 
-class InletEndpoint(SubDomain):
-    def __init__(self, point):
+class Point(SubDomain):
+    def __init__(self, coordinate):
         super().__init__()
-        self.point = point
+        self.coordinate = coordinate
 
     def inside(self, x, on_boundary: bool) -> bool:
         return (
             on_boundary
-            and near(x[0], self.point[0])
-            and near(x[1], self.point[1])
-            and near(x[2], self.point[2])
+            and near(x[0], self.coordinate[0])
+            and near(x[1], self.coordinate[1])
+            and near(x[2], self.coordinate[2])
         )
 
 class MeasureBuild(MeshBuild):
