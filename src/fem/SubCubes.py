@@ -69,3 +69,27 @@ class SubCubes(Velo):
         n = FacetNormal(self.Omega)
         flux_upper = assemble(dot(self.velocity, n) * self.ds_upper(1))
         return flux_upper
+
+    def compute_lower_cube_flux_in(self):
+        n = FacetNormal(self.Omega)
+        flux_lower_in = assemble(conditional(dot(self.velocity, n) < 0,
+                                             dot(self.velocity, n), 0) * self.ds_lower(1))
+        return flux_lower_in
+
+    def compute_lower_cube_flux_out(self):
+        n = FacetNormal(self.Omega)
+        flux_lower_out = assemble(conditional(dot(self.velocity, n) > 0,
+                                              dot(self.velocity, n), 0) * self.ds_lower(1))
+        return flux_lower_out
+
+    def compute_upper_cube_flux_in(self):
+        n = FacetNormal(self.Omega)
+        flux_upper_in = assemble(conditional(dot(self.velocity, n) < 0,
+                                             dot(self.velocity, n), 0) * self.ds_upper(1))
+        return flux_upper_in
+
+    def compute_upper_cube_flux_out(self):
+        n = FacetNormal(self.Omega)
+        flux_upper_out = assemble(conditional(dot(self.velocity, n) > 0,
+                                              dot(self.velocity, n), 0) * self.ds_upper(1))
+        return flux_upper_out
