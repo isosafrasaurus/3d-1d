@@ -1,6 +1,6 @@
 import numpy as np
 from typing import Optional, Tuple
-from dolfin import UnitCubeMesh, MeshFunction, UserExpression, SubDomain, BoundingBoxTree
+from dolfin import UnitCubeMesh, MeshFunction, UserExpression, SubDomain, BoundingBoxTree, near
 from graphnics import FenicsGraph
 
 class AxisPlane(SubDomain):
@@ -58,7 +58,7 @@ class MeshBuild:
             )
             scales = upper - lower
             shifts = lower
-            self.Omega_bounds = np.concatenate((lower, upper), axis=0)
+            self.Omega_bounds = np.vstack((lower, upper))
 
         Omega_coords[:] = Omega_coords * scales + shifts
         self.radius_map = RadiusMap(G, self.Lambda)
