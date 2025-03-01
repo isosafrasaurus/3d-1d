@@ -2,17 +2,18 @@ import numpy as np
 import VTKExporter
 import importlib
 import os
-
+import tissue
 from dolfin import *
 from graphnics import *
 from xii import *
 from typing import Optional, List, Any
-from MeasureCreator import MeasureCreator
+
+importlib.reload(tissue)
 
 class FEMSink():
     def __init__(
         self,
-        mc: MeasureCreator,
+        domain: tissue.MeasureBuild,
         gamma: float,
         gamma_a: float,
         gamma_R: float,
@@ -21,10 +22,7 @@ class FEMSink():
         k_t: float,
         k_v: float,
         P_in: float,
-        p_cvp: float,
-        Lambda_inlet: List[int],
-        Omega_sink: SubDomain,
-        **kwargs
+        p_cvp: float
     ):
         self.gamma = gamma
         self.gamma_a = gamma_a
@@ -36,16 +34,16 @@ class FEMSink():
         self.P_in = P_in
         self.p_cvp = p_cvp
 
-        self.Omega = mc.Omega
-        self.Lambda = mc.Lambda
-        self.dxOmega = mc.dxOmega
-        self.dxLambda = mc.dxLambda
-        self.dsOmegaNeumann = mc.dsOmegaNeumann
-        self.dsOmegaSink = mc.dsOmegaSink
-        self.dsLambdaRobin = mc.dsLambdaRobin
-        self.dsLambdaInlet = mc.dsLambdaInlet
-        self.boundary_Lambda = mc.boundary_Lambda
-        self.radius_map = mc.radius_map
+        self.Omega = domain.mesh.Omega
+        self.Lambda = domain.mesh.Lambda
+        self.radius_map = domain.mesh.radius_map
+        self.dxOmega = domain.dxOmega
+        self.dxLambda = domain.dxLambda
+        self.dsOmegaNeumann = domain.dsOmegaNeumann
+        self.dsOmegaSink = domain.dsOmegaSink
+        self.dsLambdaRobin = domain.dsLambdaRobin
+        self.dsLambdaInlet = domain.dsLambdaInlet
+        self.boundary_Lambda = domain.boundary_Lambda
         
         V3 = FunctionSpace(self.Omega, "CG", 1)
         V1 = FunctionSpace(self.Lambda, "CG", 1)
@@ -54,10 +52,8 @@ class FEMSink():
         v3, v1 = map(TestFunction, W)
 
         cylinder = Circle(radius=self.radius_map, degree=5)
-        
         u3_avg = Average(u3, self.Lambda, cylinder)
         v3_avg = Average(v3, self.Lambda, cylinder)
-        
         D_area = np.pi * self.radius_map**2
         D_perimeter = 2.0 * np.pi * self.radius_map
         
@@ -108,7 +104,6 @@ class FEMSink():
             print("WARNING! No Dirichlet BCs applied!")
         A, b = map(ii_convert, (A, b))
 
-        # Solve
         wh = ii_Function(W)
         solver = LUSolver(A, "mumps")
         solver.solve(wh.vector(), b)
