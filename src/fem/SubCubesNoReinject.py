@@ -1,9 +1,8 @@
-from . import Velo, VeloNoReinject
-
 import numpy as np
 import tissue
 from dolfin import *
 from typing import List
+from .VeloNoReinject import VeloNoReinject
 
 class SubCubesNoReinject(VeloNoReinject):
     def __init__(

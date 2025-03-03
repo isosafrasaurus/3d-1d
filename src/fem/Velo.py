@@ -25,6 +25,10 @@ class Velo(Sink):
         n = FacetNormal(self.Omega)
         return assemble(dot(self.velocity, n) * self.dsOmegaSink)
 
+    def compute_outflow_all(self):
+        n = FacetNormal(self.Omega)
+        return assemble(dot(self.velocity, n) * self.dsOmega)
+
     def save_vtk(self, directory: str):
         os.makedirs(directory, exist_ok=True)
         super().save_vtk(directory)

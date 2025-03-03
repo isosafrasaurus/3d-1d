@@ -44,8 +44,7 @@ def plot_with_boundaries(uh1d, uh3d, z_level=None, cube_lower=None, cube_upper=N
     
     # 3D Scatter Plot
     ax1 = fig.add_subplot(1, 2, 1, projection='3d')
-    sc = ax1.scatter(coords1d[:, 0], coords1d[:, 1], coords1d[:, 2],
-                     c=values1d, cmap='viridis', marker='o')
+    sc = ax1.scatter(coords1d[:, 0], coords1d[:, 1], coords1d[:, 2], c=values1d, cmap='viridis', marker='o')
     fig.colorbar(sc, ax=ax1, label='1D Pressure (Pa)')
     ax1.set(title='1D Pressure Scatter', xlabel='X', ylabel='Y', zlabel='Z')
     set_axes_equal(ax1)

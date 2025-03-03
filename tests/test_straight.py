@@ -1,23 +1,24 @@
 import sys, os
+import numpy as np
+from graphnics import FenicsGraph
+
 WORK_PATH = "/root/3d-1d"
 SOURCE_PATH = os.path.join(WORK_PATH, 'src')
 sys.path.append(SOURCE_PATH)
 
 import tissue, fem
-import numpy as np
-from graphnics import FenicsGraph
 
 TEST_GRAPH_NODES = {
-    0: [0.010, 0.020, 0.005],
-    1: [0.020, 0.020, 0.005],
-    2: [0.030, 0.020, 0.005],
-    3: [0.040, 0.020, 0.005]
+    0: [0.01, 0.020, 0.020],
+    1: [0.02, 0.020, 0.020],
+    2: [0.03, 0.020, 0.020],
+    3: [0.04, 0.020, 0.020]
 }
 
 TEST_GRAPH_EDGES = [
-    (0, 1, 0.010),
-    (1, 2, 0.010),
-    (2, 3, 0.010)
+    (0, 1, 0.005),
+    (1, 2, 0.005),
+    (2, 3, 0.005)
 ]
 
 TEST_GRAPH = FenicsGraph()
@@ -30,7 +31,7 @@ for u, v, radius in TEST_GRAPH_EDGES:
 
 TEST_MESH = tissue.MeshBuild(
     G = TEST_GRAPH,
-    Omega_bounds = np.array([[0,0,0],[0.05, 0.04, 0.03]]),
+    Omega_bounds = np.array([[0,0,0],[0.05, 0.04, 0.04]]),
     Omega_mesh_voxel_dim = (16, 16, 16)
 )
 

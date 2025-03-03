@@ -25,8 +25,8 @@ class Sink:
         ):
             setattr(self, name, value)
         for attr in ["Omega", "Lambda", "radius_map"]:
-            setattr(self, attr, getattr(domain.mesh, attr))
-        for attr in ["dxOmega", "dxLambda", "dsOmegaNeumann", "dsOmegaSink","dsLambdaRobin", "dsLambdaInlet", "boundary_Lambda"]:
+            setattr(self, attr, getattr(domain, attr))
+        for attr in ["dsOmega", "dsLambda", "dxOmega", "dxLambda", "dsOmegaNeumann", "dsOmegaSink","dsLambdaRobin", "dsLambdaInlet", "boundary_Lambda"]:
             setattr(self, attr, getattr(domain, attr))
 
         # Function spaces

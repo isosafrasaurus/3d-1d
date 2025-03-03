@@ -1,3 +1,4 @@
+# Redo to FGConfigure
 import numpy as np
 from typing import Optional, Tuple
 from dolfin import UnitCubeMesh, MeshFunction, UserExpression, SubDomain, BoundingBoxTree, near, Point
@@ -88,7 +89,7 @@ class MeshBuild:
         Lambda_num_nodes_exp: Optional[int] = 5
     ):
         assert Omega_bounds.shape == (2, 3), "Omega_bounds must have shape (2, 3) for span of Omega box"
-        
+
         G.make_mesh(n = Lambda_num_nodes_exp); G.make_submeshes()
         self.Lambda, edge_marker = G.get_mesh(n = Lambda_num_nodes_exp)
         Lambda_coords = self.Lambda.coordinates()
