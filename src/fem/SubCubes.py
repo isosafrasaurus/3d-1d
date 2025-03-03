@@ -24,7 +24,6 @@ class SubCubes(Velo):
         gamma: float,
         gamma_a: float,
         gamma_R: float,
-        gamma_v: float,
         mu: float,
         k_t: float,
         k_v: float,
@@ -33,7 +32,7 @@ class SubCubes(Velo):
         lower_cube_bounds: List[int],
         upper_cube_bounds: List[int]
     ):
-        super().__init__(domain, gamma, gamma_a, gamma_R, gamma_v, mu, k_t, k_v, P_in, p_cvp)
+        super().__init__(domain, gamma, gamma_a, gamma_R, mu, k_t, k_v, P_in, p_cvp)
         
         coords = self.Omega.coordinates()
         x_min, x_max = np.min(coords[:, 0]), np.max(coords[:, 0])

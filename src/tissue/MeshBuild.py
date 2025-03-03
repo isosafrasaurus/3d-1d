@@ -1,4 +1,3 @@
-# Redo to FGConfigure
 import numpy as np
 from typing import Optional, Tuple
 from dolfin import UnitCubeMesh, MeshFunction, UserExpression, SubDomain, BoundingBoxTree, near, Point

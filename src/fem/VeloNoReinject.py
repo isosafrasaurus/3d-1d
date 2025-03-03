@@ -11,14 +11,13 @@ class VeloNoReinject(SinkNoReinject):
         gamma: float,
         gamma_a: float,
         gamma_R: float,
-        gamma_v: float,
         mu: float,
         k_t: float,
         k_v: float,
         P_in: float,
         p_cvp: float
     ):
-        super().__init__(domain, gamma, gamma_a, gamma_R, gamma_v, mu, k_t, k_v, P_in, p_cvp)
+        super().__init__(domain, gamma, gamma_a, gamma_R, mu, k_t, k_v, P_in, p_cvp)
         V_vec = VectorFunctionSpace(self.Omega, "CG", 1)
         self.velocity = project(Constant(self.k_t / self.mu) * grad(self.uh3d), V_vec)
 

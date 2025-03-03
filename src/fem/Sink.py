@@ -11,22 +11,23 @@ class Sink:
         gamma: float,
         gamma_a: float,
         gamma_R: float,
-        gamma_v: float,
         mu: float,
         k_t: float,
         k_v: float,
         P_in: float,
-        p_cvp: float
+        p_cvp: float,
+        g_Neumann: float = 0.0   # new parameter for the Neumann flux
     ):
         # Set attributes
         for name, value in zip(
-            ["gamma", "gamma_a", "gamma_R", "gamma_v", "mu", "k_t", "k_v", "P_in", "p_cvp"],
-            [gamma, gamma_a, gamma_R, gamma_v, mu, k_t, k_v, P_in, p_cvp]
+            ["gamma", "gamma_a", "gamma_R", "mu", "k_t", "k_v", "P_in", "p_cvp", "g_Neumann"],
+            [gamma, gamma_a, gamma_R, mu, k_t, k_v, P_in, p_cvp, g_Neumann]
         ):
             setattr(self, name, value)
         for attr in ["Omega", "Lambda", "radius_map"]:
             setattr(self, attr, getattr(domain, attr))
-        for attr in ["dsOmega", "dsLambda", "dxOmega", "dxLambda", "dsOmegaNeumann", "dsOmegaSink","dsLambdaRobin", "dsLambdaInlet", "boundary_Lambda"]:
+        for attr in ["dsOmega", "dsLambda", "dxOmega", "dxLambda", "dsOmegaNeumann", "dsOmegaSink",
+                     "dsLambdaRobin", "dsLambdaInlet", "boundary_Lambda"]:
             setattr(self, attr, getattr(domain, attr))
 
         # Function spaces
@@ -59,10 +60,17 @@ class Sink:
             + Constant(self.gamma) * u1 * v1 * D_perimeter * self.dxLambda
             + Constant(self.gamma_a / self.mu) * u1 * v1 * self.dsLambdaRobin
         )
+        
+        # Linear form with prescribed fluxes
         L0 = (
             Constant(self.gamma_R) * Constant(self.p_cvp) * v3 * self.dsOmegaSink
             + Constant(self.gamma_a / self.mu) * Constant(self.p_cvp) * v3_avg * D_area * self.dsLambdaRobin
         )
+        # Add the Neumann flux on the designated surfaces.
+        # Here the natural (weak) formulation yields a boundary term of the form 
+        # + (prescribed flux)*v3 integrated over dsOmegaNeumann.
+        L0 += Constant(self.g_Neumann) * v3 * self.dsOmegaNeumann
+
         L1 = Constant(self.gamma_a / self.mu) * Constant(self.p_cvp) * v1 * self.dsLambdaRobin
         a = [[a00, a01], [a10, a11]]
         L = [L0, L1]
@@ -72,7 +80,7 @@ class Sink:
         inlet_bcs = [inlet_bc] if inlet_bc.get_boundary_values() else []
         W_bcs = [[], inlet_bcs]
 
-        # Solve
+        # Solve the system
         A, b = map(ii_assemble, (a, L))
         if any(W_bcs[0]) or any(W_bcs[1]):
             A, b = apply_bc(A, b, W_bcs)
