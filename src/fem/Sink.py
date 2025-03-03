@@ -15,13 +15,12 @@ class Sink:
         k_t: float,
         k_v: float,
         P_in: float,
-        p_cvp: float,
-        g_Neumann: float = 0.0   # new parameter for the Neumann flux
+        p_cvp: float
     ):
         # Set attributes
         for name, value in zip(
-            ["gamma", "gamma_a", "gamma_R", "mu", "k_t", "k_v", "P_in", "p_cvp", "g_Neumann"],
-            [gamma, gamma_a, gamma_R, mu, k_t, k_v, P_in, p_cvp, g_Neumann]
+            ["gamma", "gamma_a", "gamma_R", "mu", "k_t", "k_v", "P_in", "p_cvp"],
+            [gamma, gamma_a, gamma_R, mu, k_t, k_v, P_in, p_cvp]
         ):
             setattr(self, name, value)
         for attr in ["Omega", "Lambda", "radius_map"]:
@@ -66,12 +65,8 @@ class Sink:
             Constant(self.gamma_R) * Constant(self.p_cvp) * v3 * self.dsOmegaSink
             + Constant(self.gamma_a / self.mu) * Constant(self.p_cvp) * v3_avg * D_area * self.dsLambdaRobin
         )
-        # Add the Neumann flux on the designated surfaces.
-        # Here the natural (weak) formulation yields a boundary term of the form 
-        # + (prescribed flux)*v3 integrated over dsOmegaNeumann.
-        L0 += Constant(self.g_Neumann) * v3 * self.dsOmegaNeumann
-
         L1 = Constant(self.gamma_a / self.mu) * Constant(self.p_cvp) * v1 * self.dsLambdaRobin
+        
         a = [[a00, a01], [a10, a11]]
         L = [L0, L1]
 

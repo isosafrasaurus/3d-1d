@@ -1,10 +1,9 @@
-import numpy as np
 from scipy.optimize import minimize
 import matplotlib.pyplot as plt
 
 def black_box_flow(gamma, gamma_R, gamma_a, gamma_v, k_v):
-    fem_test = FEMSinkVelo.FEMSinkVelo(
-        G=G,
+    fem_test = fem.Velo(
+        domain=TEST_MEASURE,
         gamma=gamma,
         gamma_R=gamma_R,
         gamma_a=gamma_a,
@@ -13,9 +12,7 @@ def black_box_flow(gamma, gamma_R, gamma_a, gamma_v, k_v):
         k_t=1.0e-10,
         k_v=k_v,
         P_in=100.0*133.322,
-        p_cvp=1.0*133.322,
-        Lambda_inlet=[0],
-        Lambda_padding_min=0.008
+        p_cvp=1.0*133.322
     )
     flow_val = fem_test.compute_outflow_sink()
     return flow_val
