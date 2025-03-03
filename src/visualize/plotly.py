@@ -6,6 +6,7 @@ from matplotlib.patches import Rectangle
 from typing import Optional, Tuple, List, Any
 from graphnics import *
 from xii import *
+from .util import *
 
 def add_box_plotly(fig: go.Figure,
                    box: Tuple[np.ndarray, np.ndarray],

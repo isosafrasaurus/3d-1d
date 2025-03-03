@@ -2,13 +2,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.interpolate import griddata
 from matplotlib.patches import Rectangle
-
 from graphnics import *
 from xii import *
-
-BOX_EDGES = [(0, 1), (1, 2), (2, 3), (3, 0),
-             (4, 5), (5, 6), (6, 7), (7, 4),
-             (0, 4), (1, 5), (2, 6), (3, 7)]
+from .util import *
 
 def set_axes_equal(ax):
     limits = np.array([ax.get_xlim3d(), ax.get_ylim3d(), ax.get_zlim3d()])
@@ -17,14 +13,6 @@ def set_axes_equal(ax):
     ax.set_xlim3d([centers[0] - radius, centers[0] + radius])
     ax.set_ylim3d([centers[1] - radius, centers[1] + radius])
     ax.set_zlim3d([centers[2] - radius, centers[2] + radius])
-
-def get_box_edges(corners):
-    x_line, y_line, z_line = [], [], []
-    for i, j in BOX_EDGES:
-        x_line += [corners[i, 0], corners[j, 0], None]
-        y_line += [corners[i, 1], corners[j, 1], None]
-        z_line += [corners[i, 2], corners[j, 2], None]
-    return np.array(x_line), np.array(y_line), np.array(z_line)
 
 def plot_3d_box(ax, box, color, label=None):
     lower, upper = box
@@ -45,11 +33,6 @@ def plot_3d_box(ax, box, color, label=None):
         ax.plot([corners[i, 0], corners[j, 0]],
                 [corners[i, 1], corners[j, 1]],
                 [corners[i, 2], corners[j, 2]], **kwargs)
-
-def compute_boundaries(coords):
-    return (coords[:, 0].min(), coords[:, 0].max(),
-            coords[:, 1].min(), coords[:, 1].max(),
-            coords[:, 2].min(), coords[:, 2].max())
 
 def plot_with_boundaries(uh1d, uh3d, z_level=None, cube_lower=None, cube_upper=None):
     mesh1d, mesh3d = uh1d.function_space().mesh(), uh3d.function_space().mesh()
@@ -104,39 +87,6 @@ def plot_with_boundaries(uh1d, uh3d, z_level=None, cube_lower=None, cube_upper=N
 
     plt.tight_layout()
     return fig
-
-def get_cells_along_path(G, path):
-    global_vertices = []
-    global_coords = G.mesh.coordinates()
-    for u, v in zip(path, path[1:]):
-        if G.has_edge(u, v):
-            edge, forward = (u, v), True
-        elif G.has_edge(v, u):
-            edge, forward = (v, u), False
-        else:
-            raise ValueError(f"No edge between {u} and {v} in the graph.")
-        submesh = G.edges[edge]["submesh"]
-        coords = submesh.coordinates()
-        if hasattr(submesh, 'entity_map'):
-            local_to_global = submesh.entity_map(0)
-        else:
-            tol = 1e-12
-            local_to_global = []
-            for pt in coords:
-                matches = np.where(np.all(np.isclose(global_coords, pt, atol=tol), axis=1))[0]
-                if not matches.size:
-                    raise ValueError(f"No matching global vertex for {pt}")
-                local_to_global.append(matches[0])
-            local_to_global = np.array(local_to_global)
-        tangent = G.edges[edge]["tangent"]
-        if not forward:
-            tangent = -tangent
-        sorted_indices = np.argsort(np.dot(coords, tangent))
-        ordered_globals = [local_to_global[i] for i in sorted_indices]
-        if global_vertices and ordered_globals[0] == global_vertices[-1]:
-            ordered_globals = ordered_globals[1:]
-        global_vertices.extend(ordered_globals)
-    return global_vertices
 
 def plot_path_pressure(uh1d, G, path):
     node_ids = get_cells_along_path(G, path)

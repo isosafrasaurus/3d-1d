@@ -1,9 +1,21 @@
-from . import Velo
-
-import numpy as np
 import tissue
+import numpy as np
 from dolfin import *
 from typing import List
+from . import Velo
+
+class CubeSubBoundary(SubDomain):
+    def __init__(self, lower, upper):
+        super().__init__()
+        self.lower = lower
+        self.upper = upper
+
+    def inside(self, x, on_boundary):
+        return on_boundary and (
+            near(x[0], self.lower[0]) or near(x[0], self.upper[0]) or
+            near(x[1], self.lower[1]) or near(x[1], self.upper[1]) or
+            near(x[2], self.lower[2]) or near(x[2], self.upper[2])
+        )
 
 class SubCubes(Velo):
     def __init__(
@@ -36,26 +48,10 @@ class SubCubes(Velo):
         self.upper_boundaries = MeshFunction("size_t", self.Omega, self.Omega.topology().dim() - 1)
         self.upper_boundaries.set_all(0)
         
-        class CubeSubBoundary(SubDomain):
-            def __init__(self, lower: List[float], upper: List[float], tol=1e-6):
-                super().__init__()
-                self.lower = lower
-                self.upper = upper
-                self.tol = tol
-
-            def inside(self, x, on_boundary):
-                return on_boundary and (
-                    x[0] >= self.lower[0] - self.tol and x[0] <= self.upper[0] + self.tol and
-                    x[1] >= self.lower[1] - self.tol and x[1] <= self.upper[1] + self.tol and
-                    x[2] >= self.lower[2] - self.tol and x[2] <= self.upper[2] + self.tol
-                )
-        
         self.lower_cube = CubeSubBoundary(self.lower_cube_bounds[0], self.lower_cube_bounds[1])
         self.upper_cube = CubeSubBoundary(self.upper_cube_bounds[0], self.upper_cube_bounds[1])
-        
         self.lower_cube.mark(self.lower_boundaries, 1)
         self.upper_cube.mark(self.upper_boundaries, 1)
-        
         self.ds_lower = Measure("ds", domain=self.Omega, subdomain_data=self.lower_boundaries)
         self.ds_upper = Measure("ds", domain=self.Omega, subdomain_data=self.upper_boundaries)
     
