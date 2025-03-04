@@ -18,7 +18,7 @@ class Velo(Sink):
     ):
         super().__init__(domain, gamma, gamma_a, gamma_R, mu, k_t, k_v, P_in, p_cvp)
         V_vec = VectorFunctionSpace(self.Omega, "CG", 1)
-        self.velocity = project(Constant(self.k_t / self.mu) * grad(self.uh3d), V_vec)
+        self.velocity = project(Constant(- self.k_t / self.mu) * grad(self.uh3d), V_vec)
 
     def compute_outflow_sink(self):
         n = FacetNormal(self.Omega)

@@ -42,32 +42,52 @@ class Sink:
         v3_avg = Average(v3, self.Lambda, cylinder)
         D_area = np.pi * self.radius_map**2
         D_perimeter = 2.0 * np.pi * self.radius_map
-
-        # Block matrix terms
+       
+        # A00 : terms involving ( u3 , v3 )
         a00 = (
             Constant(self.k_t / self.mu) * inner(grad(u3), grad(v3)) * self.dxOmega
             + Constant(self.gamma_R) * u3 * v3 * self.dsOmegaSink
             + Constant(self.gamma) * u3_avg * v3_avg * D_perimeter * self.dxLambda
         )
+        
+        # A01 : cross-terms involving ( u1 , v3 )
+        #       These come with a minus sign from the coupling  γ⋅(P - p3_avg)
         a01 = (
             - Constant(self.gamma) * u1 * v3_avg * D_perimeter * self.dxLambda
             - Constant(self.gamma_a / self.mu) * u1 * v3_avg * D_area * self.dsLambdaRobin
         )
-        a10 = - Constant(self.gamma) * u3_avg * v1 * D_perimeter * self.dxLambda
-        a11 = (
-            Constant(self.k_v / self.mu) * inner(grad(u1), grad(v1)) * D_area * self.dxLambda
-            + Constant(self.gamma) * u1 * v1 * D_perimeter * self.dxLambda
-            + Constant(self.gamma_a / self.mu) * u1 * v1 * self.dsLambdaRobin
+        
+        # A10 : cross-terms involving ( u3 , v1 )
+        #       Also a minus sign from the coupling  γ⋅(p3_avg - P).
+        a10 = (
+            - Constant(self.gamma) * u3_avg * v1 * D_perimeter * self.dxLambda
         )
         
-        # Linear form with prescribed fluxes
+        # A11 : terms involving ( u1 , v1 ) along the centerline
+        a11 = (
+            Constant(self.k_v / self.mu) * D_area * inner(grad(u1), grad(v1)) * self.dxLambda
+            + Constant(self.gamma) * u1 * v1 * D_perimeter * self.dxLambda
+            + Constant(self.gamma_a / self.mu) * u1 * v1 * D_area * self.dsLambdaRobin
+        )
+        
+        #
+        #  These come from the known pressure p_cvp in the Robin-type terms
+        #  on 3D outflow  and on 1D vessel outlets.
+        
+        # L0 : with test function v3
         L0 = (
             Constant(self.gamma_R) * Constant(self.p_cvp) * v3 * self.dsOmegaSink
             + Constant(self.gamma_a / self.mu) * Constant(self.p_cvp) * v3_avg * D_area * self.dsLambdaRobin
         )
-        L1 = Constant(self.gamma_a / self.mu) * Constant(self.p_cvp) * v1 * self.dsLambdaRobin
         
-        a = [[a00, a01], [a10, a11]]
+        # L1 : with test function v1
+        L1 = (
+            Constant(self.gamma_a / self.mu) * Constant(self.p_cvp) * v1 * D_area * self.dsLambdaRobin
+        )
+        
+        # --- Combine into block system ---
+        a = [[a00, a01],
+             [a10, a11]]
         L = [L0, L1]
 
         # Inlet Dirichlet conditions
